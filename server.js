@@ -16,10 +16,13 @@ const KNOTS_TO_METRES_PER_SECOND = 0.51444444444;
 app.use("/", express.static(__dirname + "/www"));
 
 wss.on("connection", function (ws) {
-		ws.on("message", function(message) {
+	ws.on("message", function(message) {
 		console.log("received: %s", message);
+		ws.send("w00t: "+message);
+		ws.close();
 	});
-	ws.send("something");
+
+	ws.send("honk");
 });
 
 // http://aprs.gids.nl/nmea/#rmc
