@@ -74,7 +74,7 @@ function processGPRMC(ts, client, data, extra) {
 
 	var payload = {
 		ts: isoDate,
-		recvts: ts,
+		recvts: (new Date(ts)).toISOString(),
 		coords: [ GPRMC2Degrees(latitude, hemisphere), GPRMC2Degrees(longitude, handedness) ],
 		speed: (speed*0.51444444444).toFixed(3),	// knots to meters per seconds
 		extra: extra,
