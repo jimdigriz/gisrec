@@ -35,6 +35,8 @@
 
 # Using
 
+When running, you should open your browser to [http://192.0.2.69:27270/](http://192.0.2.69:27270/).
+
 ## Xexun TK201-2 (and possibly others)
 
 SMS the following to the phone number of the SIM in your Xexun tracker (where `192.0.2.69` is the IP address of your server and `giffgaff.com` is your APN):
