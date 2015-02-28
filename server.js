@@ -38,6 +38,7 @@ var gis = net.createServer(function(client) {
 	client.pipe(es.split()).pipe(es.map(function (data) {
 		var meta = {
 			id: null,
+			raw: data,
 			source: { address: remoteAddress, port: remotePort },
 			recvts: (new Date()).toISOString(),
 		};
@@ -49,6 +50,7 @@ var gis = net.createServer(function(client) {
 			console.log("["+remoteAddress+"]:"+remotePort+": converting xexun");
 
 			meta.xexun		= {};
+			meta.protocol		= 'xexun';
 
 			var match = reXEXUN.exec(data);
 			meta.xexun.serial	= match[1];
