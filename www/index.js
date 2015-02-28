@@ -18,7 +18,7 @@ realtime.on("update", function() {
 });
 */
 
-var connection = new WebSocket("ws://127.0.0.1:27270");
+var connection = new WebSocket("ws://" + location.host);
 connection.onopen = function () {connection.send("The time is " + new Date().getTime());};
 connection.onmessage = function (e) {document.getElementById("capture").innerHTML = e.data;};
 connection.onclose = function(event) {console.log(event);};
