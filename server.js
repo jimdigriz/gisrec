@@ -53,10 +53,10 @@ var gis = net.createServer(function(client) {
 			meta.protocol		= 'xexun';
 
 			var match = reXEXUN.exec(data);
-			meta.xexun.serial	= match[1];
-			meta.xexun.admintel	= match[2];
+			meta.xexun.serial	= match[1];	// gps date + gps time
+			meta.xexun['admin-tel']	= match[2];
 			data			= "$"+match[3]+",000.00,E"+match[4];
-			meta.xexun.gpsfix	= ( match[5] === "F" ) ? 1 : 0;
+			meta.xexun['gps-fix']	= ( match[5] === "F" ) ? 1 : 0;
 			meta.xexun.message	= match[6];
 			meta.xexun.imei		= match[7];
 			meta.xexun.satellites	= parseInt(match[8]);
@@ -66,9 +66,9 @@ var gis = net.createServer(function(client) {
 				voltage: parseFloat(match[11]),
 				charging: parseInt(match[12]),
 			};
-			meta.xexun.gpslen	= parseInt(match[13]),
+			meta.xexun.length	= parseInt(match[13]),
 			meta.xexun.crc16	= parseInt(match[14]),
-			meta.xexun.mobile	= {
+			meta.xexun.gsm	= {
 				mcc: parseInt(match[15]),
 				mnc: parseInt(match[16]),
 				lac: match[17],
