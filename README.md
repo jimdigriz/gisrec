@@ -9,7 +9,6 @@
  * needs GUI
   * [LeafletJS](http://leafletjs.com/)
   * for [historic playback](https://github.com/hallahan/LeafletPlayback)
-  * for [live plotting](https://github.com/perliedman/leaflet-realtime)
  * basic configuration
   * filter unsolicited requests
  * data storage format

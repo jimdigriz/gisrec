@@ -8,21 +8,15 @@ const WebSocketServer = require("ws").Server;
 const wss = new WebSocketServer({ server: server }); 
 const es = require("event-stream");
 const fs = require("fs");
-const mkdirp = require("mkdirp");
-const geojson = require("geojson");
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444444444;
 
-app.use("/", express.static(__dirname + "/www"));
+app.use("/", express.static(__dirname + "/public"));
 
 wss.on("connection", function (ws) {
 	ws.on("message", function(message) {
-		console.log("received: %s", message);
-		ws.send("w00t: "+message);
-		ws.close();
+		console.log(message);
 	});
-
-	ws.send("honk");
 });
 
 // http://aprs.gids.nl/nmea/#rmc
@@ -30,6 +24,12 @@ const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?),([AV]),([0-9]+(?:\.[0-9]+)?),(
 
 // http://www.yourgps.de/marketplace/products/documents/xexun/User-Manual-XT-009.pdf
 const reXEXUN = /^([0-9]{12}),(\+?[0-9]+),(GPRMC,.*),,,[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
+
+try {
+	fs.statSync("data")
+} catch(e) {
+	fs.mkdirSync("data");
+}
 
 var gis = net.createServer(function(client) {
 	var	remoteAddress = client.remoteAddress,
@@ -82,7 +82,9 @@ var gis = net.createServer(function(client) {
 			meta.id = meta.xexun.imei;
 		case reGPRMC.test(data):
 			console.log("["+remoteAddress+"]:"+remotePort+": recording gprmc");
-			processGPRMC(meta, data);
+			var g = processGPRMC(data, meta);
+			if (g === undefined)
+				client.end();
 			break;
 		default:
 			console.log("["+remoteAddress+"]:"+remotePort+": unknown format");
@@ -94,8 +96,8 @@ var gis = net.createServer(function(client) {
 server.listen(process.env.PORT_HTTP || 27270, "::");
 gis.listen(process.env.PORT_GIS || 27271, "::");
 
-function processGPRMC(payload, data) {
-	if (payload.id === null) {
+function processGPRMC(data, properties) {
+	if (properties.id === null) {
 		console.log("'id' is not set, unable to save data");
 		return;
 	}
@@ -118,21 +120,35 @@ function processGPRMC(payload, data) {
 
 	var	ts = new Date(y, m, d, H, M, S, ms);
 
-	payload.time				= parseFloat((ts/1000.0).toFixed(3));
-	payload.lat				= GPRMC2Degrees(latitude, hemisphere);
-	payload.lng				= GPRMC2Degrees(longitude, handedness);
+	var multipoint = [ {
+		latitude:	GPRMC2Degrees(latitude, hemisphere),
+		longitude:	GPRMC2Degrees(longitude, handedness),
+		time:		parseFloat((ts/1000.0).toFixed(3)),
+	} ];
 
-	payload.gprmc				= {};
-	payload.gprmc.speed			= speed;
-	payload.gprmc["course-made-good"]	= cmg;
-	payload.gprmc["magnetic-variance"]	= GPRMC2Degrees(magvar, maghandedness);
-	payload.gprmc.checksum			= checksum
+	properties.gprmc			= {};
+	properties.gprmc.speed			= speed;
+	properties.gprmc["course-made-good"]	= cmg;
+	properties.gprmc["magnetic-variance"]	= GPRMC2Degrees(magvar, maghandedness);
+	properties.gprmc.checksum		= checksum
 
-	mkdirp.sync("data/"+payload.id);
-	fs.writeFileSync("data/"+payload.id+"/"+ts.toISOString()+".json", JSON.stringify(geojson.parse([ payload ], { MultiPoint: ["lat", "lng"] })));
+	var g = toGeoJSON(multipoint, properties);
+
+	try {
+		fs.statSync("data/"+properties.id)
+	} catch(e) {
+		console.log("unregistered device: "+properties.id);
+		informRealtime("unregistered", g);
+		return;
+	}
+
+	fs.writeFileSync("data/"+properties.id+"/"+ts.toISOString()+".json", JSON.stringify(g));
+	informRealtime(properties.id, g);
+
+	return g;
 }
 
-function GPRMC2Degrees (value, direction) {
+function GPRMC2Degrees(value, direction) {
 	// http://www.mapwindow.org/phorum/read.php?3,16271
 	var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
 
@@ -141,4 +157,30 @@ function GPRMC2Degrees (value, direction) {
 
 	// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
 	return parseFloat(d.toFixed(5));
+}
+
+function toGeoJSON(multipoint, prop) {
+	prop.time = [ ];
+
+	var geojson = {
+		type:			"Feature",
+		geometry: {
+			type:		"MultiPoint",
+			coordinates:	[ ],
+		},
+		properties:		prop,
+	};
+
+	multipoint.forEach(function(m) {
+		geojson.geometry.coordinates.push([ m.longitude, m.latitude ]);
+		geojson.properties.time.push(m.time);
+	});
+
+	return geojson;
+}
+
+function informRealtime(id, g) {
+	wss.clients.forEach(function(c) {
+		c.send(JSON.stringify({ type: "realtime", id: id, geojson: g }));
+	});
 }
