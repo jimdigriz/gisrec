@@ -97,7 +97,6 @@ function processGPRMC(payload, data) {
 	}
 
 	var match = reGPRMC.exec(data);
-console.log(match);
 	var	time = match[1],
 		validity = ( match[2] === "A" ) ? 1 : 0,
 		latitude = parseFloat(match[3]),	hemisphere = match[4],
