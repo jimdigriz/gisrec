@@ -13,7 +13,6 @@
  * basic configuration
   * filter unsolicited requests
  * data storage format
-  * move to [GeoJSON](http://geojson.org/geojson-spec.html)
   * recording coalesce
   * HTTP cache friendly
   * record *device* location, but a device can be attached for periods

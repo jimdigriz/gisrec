@@ -8,7 +8,8 @@ const WebSocketServer = require("ws").Server;
 const wss = new WebSocketServer({ server: server }); 
 const es = require("event-stream");
 const fs = require("fs");
-const mkdirp = require('mkdirp');
+const mkdirp = require("mkdirp");
+const geojson = require("geojson");
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444444444;
 
@@ -37,10 +38,10 @@ var gis = net.createServer(function(client) {
 	});
 	client.pipe(es.split()).pipe(es.map(function (data) {
 		var meta = {
-			id: null,
-			raw: data,
-			source: { address: remoteAddress, port: remotePort },
-			recvts: (new Date()).toISOString(),
+			"id":		null,
+			"raw":		data,
+			"source":	{ address: remoteAddress, port: remotePort },
+			"recv-time":	(new Date())/1000.0,
 		};
 
 		switch (true) {
@@ -50,13 +51,13 @@ var gis = net.createServer(function(client) {
 			console.log("["+remoteAddress+"]:"+remotePort+": converting xexun");
 
 			meta.xexun		= {};
-			meta.protocol		= 'xexun';
+			meta.protocol		= "xexun";
 
 			var match = reXEXUN.exec(data);
 			meta.xexun.serial	= match[1];	// gps date + gps time
-			meta.xexun['admin-tel']	= match[2];
+			meta.xexun["admin-tel"]	= match[2];
 			data			= "$"+match[3]+",000.00,E"+match[4];
-			meta.xexun['gps-fix']	= ( match[5] === "F" ) ? 1 : 0;
+			meta.xexun["gps-fix"]	= ( match[5] === "F" ) ? 1 : 0;
 			meta.xexun.message	= match[6];
 			meta.xexun.imei		= match[7];
 			meta.xexun.satellites	= parseInt(match[8]);
@@ -112,19 +113,18 @@ function processGPRMC(payload, data) {
 	var	timeParts = /([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]{3}))/.exec(time);
 	var	H = timeParts[1], M = timeParts[2], S = timeParts[3], ms = timeParts[4] || 0;
 
-	var	isoDate = (new Date(y, m, d, H, M, S, ms)).toISOString();
+	payload.time				= (new Date(y, m, d, H, M, S, ms))/1000.0;
+	payload.lat				= GPRMC2Degrees(latitude, hemisphere);
+	payload.lng				= GPRMC2Degrees(longitude, handedness);
 
-	payload.ts	= isoDate;
-	payload.data	= {
-		"coords":		[ GPRMC2Degrees(latitude, hemisphere), GPRMC2Degrees(longitude, handedness) ],
-		"speed":		speed,
-		"course-made-good":	cmg,
-		"magnetic-variance":	GPRMC2Degrees(magvar, maghandedness),
-		"checksum":		checksum,
-	};
+	payload.gprmc				= {};
+	payload.gprmc.speed			= speed;
+	payload.gprmc["course-made-good"]	= cmg;
+	payload.gprmc["magnetic-variance"]	= GPRMC2Degrees(magvar, maghandedness);
+	payload.gprmc.checksum			= checksum
 
 	mkdirp.sync("data/"+payload.id);
-	fs.writeFileSync("data/"+payload.id+"/"+isoDate+".json", JSON.stringify(payload));
+	fs.writeFileSync("data/"+payload.id+"/"+payload.time+".json", JSON.stringify(geojson.parse([ payload ], { MultiPoint: ["lat", "lng"] })));
 }
 
 function GPRMC2Degrees (value, direction) {
