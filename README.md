@@ -56,5 +56,5 @@ To disable auto-track, send:
 
 ### Related Links
 
-  * [manufacturers product page]((http://www.gpstrackerchina.com/p131-GPS-Portable-Tracker-TK201-2/))
+  * [manufacturers product page](http://www.gpstrackerchina.com/p131-GPS-Portable-Tracker-TK201-2/)
   * [manual](http://www.jimsgpstracker.com/manual/tk201-user-manual.pdf)
