@@ -13,6 +13,7 @@
   * record *device* location, but a device can be attached for periods
   * [GeoJSON](http://geojson.org/geojson-spec.html) seems unsuitable for temporal data and [JTS](http://eagleio.readthedocs.org/en/latest/reference/historic/jts.html) looks nuts
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
+ * check xexun length and crc16
 
 # Preflight
 
