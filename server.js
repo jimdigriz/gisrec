@@ -102,7 +102,7 @@ function processGPRMC(payload, data) {
 		validity = ( match[2] === "A" ) ? 1 : 0,
 		latitude = parseFloat(match[3]),	hemisphere = match[4],
 		longitude = parseFloat(match[5]),	handedness = match[6],
-		speed = parseFloat((match[7]*KNOTS_TO_METRES_PER_SECOND).toPrecision(3)),
+		speed = parseFloat((match[7]*KNOTS_TO_METRES_PER_SECOND).toFixed(3)),
 		cmg = parseFloat(match[8]),
 		date = match[9],
 		magvar = parseFloat(match[10]),		maghandedness = match[11],
@@ -113,7 +113,9 @@ function processGPRMC(payload, data) {
 	var	timeParts = /([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]{3}))/.exec(time);
 	var	H = timeParts[1], M = timeParts[2], S = timeParts[3], ms = timeParts[4] || 0;
 
-	payload.time				= (new Date(y, m, d, H, M, S, ms))/1000.0;
+	var	ts = new Date(y, m, d, H, M, S, ms);
+
+	payload.time				= parseFloat((ts/1000.0).toFixed(3));
 	payload.lat				= GPRMC2Degrees(latitude, hemisphere);
 	payload.lng				= GPRMC2Degrees(longitude, handedness);
 
@@ -124,7 +126,7 @@ function processGPRMC(payload, data) {
 	payload.gprmc.checksum			= checksum
 
 	mkdirp.sync("data/"+payload.id);
-	fs.writeFileSync("data/"+payload.id+"/"+payload.time+".json", JSON.stringify(geojson.parse([ payload ], { MultiPoint: ["lat", "lng"] })));
+	fs.writeFileSync("data/"+payload.id+"/"+ts.toISOString()+".json", JSON.stringify(geojson.parse([ payload ], { MultiPoint: ["lat", "lng"] })));
 }
 
 function GPRMC2Degrees (value, direction) {
@@ -135,5 +137,5 @@ function GPRMC2Degrees (value, direction) {
 		d *= -1;
 
 	// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
-	return parseFloat(d.toPrecision(5));
+	return parseFloat(d.toFixed(5));
 }
