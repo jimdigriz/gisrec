@@ -1,4 +1,4 @@
-`gisrec` receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rmc), and then makes it avaliable to an HTTP client.
+`gisrec` receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rmc), and then makes it available to an HTTP client.
 
 ## Features
 
@@ -14,7 +14,7 @@
   * filter unsolicited requests
  * data storage format
   * move to [GeoJSON](http://geojson.org/geojson-spec.html)
-  * recording coalescer
+  * recording coalesce
   * HTTP cache friendly
   * record *device* location, but a device can be attached for periods
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
