@@ -88,7 +88,7 @@ function GPRMC2Degrees (value, direction) {
 	// http://www.mapwindow.org/phorum/read.php?3,16271
 	var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
 
-	if (direction == "S" || direction == "W")
+	if (direction === "S" || direction === "W")
 		d *= -1;
 
 	// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
