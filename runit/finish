@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eu
+
+echo "[finish] $(basename $(pwd)) has exited. Exit code:'$1' waitpid(2) status:'$2'"

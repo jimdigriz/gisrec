@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -eu
+
+cd "$(dirname $0)/.."
+
+exec 2>&1
+exec chpst -e "$(dirname "$0")/env" npm start

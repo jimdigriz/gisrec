@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -eu
+
+LOG="$(dirname "$0")/../log"
+
+test -d "$LOG" || mkdir -p -m 2770 "$LOG"
+
+exec svlogd -tt "$LOG"

@@ -54,8 +54,8 @@ var gis = net.createServer(function(client) {
 	}));
 });
 
-server.listen(process.env.HTTP_PORT || 27270, "::");
-gis.listen(process.env.GIS_PORT || 27271, "::");
+server.listen(process.env.PORT_HTTP || 27270, "::");
+gis.listen(process.env.PORT_GIS || 27271, "::");
 
 function processGPRMC(ts, client, data, extra) {
 	var	id = extra.serial;
