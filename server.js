@@ -26,9 +26,12 @@ const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?)?,([AV])?,([0-9]+(?:\.[0-9]+)?)
 const reXEXUN = /^([0-9]{12}),(\+?[0-9]+),(GPRMC,.*,,),[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
 
 try {
-	fs.statSync("data")
+	fs.statSync("data/.unknown")
 } catch(e) {
-	fs.mkdirSync("data");
+	try {
+		fs.mkdirSync("data");
+	} catch (e) { }
+	fs.mkdirSync("data/.unknown");
 }
 
 var gis = net.createServer(function(client) {
@@ -84,10 +87,8 @@ var gis = net.createServer(function(client) {
 		case reGPRMC.test(data):
 			console.log("["+remoteAddress+"]:"+remotePort+": recording gprmc");
 			meta.protocol.push("gprmc");
-			var g = processGPRMC(data, meta);
-			if (g === undefined)
-				client.end();
-			break;
+			if (processGPRMC(data, meta) !== undefined);
+				break;
 		default:
 			console.log("["+remoteAddress+"]:"+remotePort+": unknown format");
 			client.end();
