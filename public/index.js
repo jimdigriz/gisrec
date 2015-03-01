@@ -30,14 +30,6 @@ connection.onconnection = function() {
 	};
 };
 
-document.getElementById('unreg').onclick = function() {
-	connection.send(JSON.stringify({
-		tag:		tag++,
-		type:		(this.checked) ? 'join' : 'leave',
-		channel:	null
-	}));
-};
-
 function jsonpRequest(url) {
 	var script = document.createElement("script");
 	script.src = url;
@@ -56,9 +48,9 @@ function deviceList(payload) {
 		var li = document.createElement('li');
 		li.setAttribute('id', id);
 
+		li.appendChild(document.createTextNode(id));
 		li.appendChild(deviceListCheckbox(id, 'location-arrow'));
 		li.appendChild(deviceListCheckbox(id, 'history'));
-		li.appendChild(document.createTextNode(id));
 
 		ul.appendChild(li);
 	}
@@ -68,13 +60,13 @@ function deviceListCheckbox(id, type) {
 	var form = document.createElement('form');
 
 	var input = document.createElement('input');
-	input.setAttribute('id', id+' '+type);
+	input.setAttribute('id', type+' '+id);
 	input.setAttribute('type', 'checkbox');
-	input.setAttribute('name', id+' '+type);
+	input.setAttribute('onclick', 'javascript:check(this)');
 	form.appendChild(input);
 
 	var label = document.createElement('label');
-	label.setAttribute('for', id+' '+type);
+	label.setAttribute('for', type+' '+id);
 	form.appendChild(label);
 
 	var box = document.createElement('i');
@@ -82,4 +74,17 @@ function deviceListCheckbox(id, type) {
 	label.appendChild(box);
 
 	return form;
+}
+
+function check(element) {
+	var type = element.id.split(' ')[0];
+	var chan = element.id.split(' ')[1] || null;
+
+	if (type === "location-arrow") {
+		connection.send(JSON.stringify({
+			tag:		tag++,
+			type:		(element.checked) ? 'join' : 'leave',
+			channel:	chan,
+		}));
+	}
 }
