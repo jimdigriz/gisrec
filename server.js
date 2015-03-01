@@ -20,10 +20,10 @@ wss.on("connection", function (ws) {
 });
 
 // http://aprs.gids.nl/nmea/#rmc
-const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?),([AV]),([0-9]+(?:\.[0-9]+)?),([NS]),([0-9]+(?:\.[0-9]+)?),([EW]),([0-9]+(?:\.[0-9]+)?),([0-9]+(?:\.[0-9]+)?),([0-9]{6}),([0-9]+(?:\.[0-9]+)?),([EW])\*([0-9]+)$/;
+const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?)?,([AV])?,([0-9]+(?:\.[0-9]+)?)?,([NS])?,([0-9]+(?:\.[0-9]+)?)?,([EW])?,([0-9]+(?:\.[0-9]+)?)?,([0-9]+(?:\.[0-9]+)?)?,([0-9]{6})?,([0-9]+(?:\.[0-9]+)?)?,([EW])?\*([0-9]+)$/;
 
 // http://www.yourgps.de/marketplace/products/documents/xexun/User-Manual-XT-009.pdf
-const reXEXUN = /^([0-9]{12}),(\+?[0-9]+),(GPRMC,.*),,,[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
+const reXEXUN = /^([0-9]{12}),(\+?[0-9]+),(GPRMC,.*,,),[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
 
 try {
 	fs.statSync("data")
@@ -45,6 +45,7 @@ var gis = net.createServer(function(client) {
 			"raw":		data,
 			"source":	{ address: remoteAddress, port: remotePort },
 			"recv-time":	(new Date())/1000.0,
+			"protocol":	[],
 		};
 
 		switch (true) {
@@ -54,12 +55,12 @@ var gis = net.createServer(function(client) {
 			console.log("["+remoteAddress+"]:"+remotePort+": converting xexun");
 
 			meta.xexun		= {};
-			meta.protocol		= "xexun";
+			meta.protocol.push("xexun");
 
 			var match = reXEXUN.exec(data);
 			meta.xexun.serial	= match[1];	// gps date + gps time
 			meta.xexun["admin-tel"]	= match[2];
-			data			= "$"+match[3]+",000.00,E"+match[4];
+			data			= "$"+match[3]+match[4];
 			meta.xexun["gps-fix"]	= ( match[5] === "F" ) ? 1 : 0;
 			meta.xexun.message	= match[6];
 			meta.xexun.imei		= match[7];
@@ -82,6 +83,7 @@ var gis = net.createServer(function(client) {
 			meta.id = meta.xexun.imei;
 		case reGPRMC.test(data):
 			console.log("["+remoteAddress+"]:"+remotePort+": recording gprmc");
+			meta.protocol.push("gprmc");
 			var g = processGPRMC(data, meta);
 			if (g === undefined)
 				client.end();
@@ -127,6 +129,7 @@ function processGPRMC(data, properties) {
 	} ];
 
 	properties.gprmc			= {};
+	properties.gprmc.raw			= data;
 	properties.gprmc.speed			= speed;
 	properties.gprmc["course-made-good"]	= cmg;
 	properties.gprmc["magnetic-variance"]	= GPRMC2Degrees(magvar, maghandedness);
@@ -160,13 +163,13 @@ function GPRMC2Degrees(value, direction) {
 }
 
 function toGeoJSON(multipoint, prop) {
-	prop.time = [ ];
+	prop.time = [];
 
 	var geojson = {
 		type:			"Feature",
 		geometry: {
 			type:		"MultiPoint",
-			coordinates:	[ ],
+			coordinates:	[],
 		},
 		properties:		prop,
 	};
