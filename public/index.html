@@ -1,13 +1,41 @@
+<!DOCTYPE html>
 <html>
 <head>
-<title>GISrec</title>
-<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
-<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-<link rel="stylesheet" href="main.css" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<title>GISrec</title>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+	<link rel="stylesheet" href="index.css" />
+
+	<link rel="stylesheet" href="leaflet.css" />
+	<script src="leaflet.js"></script>
+
+	<link rel="stylesheet" href="leaflet-sidebar.min.css" />
+	<link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+	<script src="leaflet-sidebar.min.js"></script>
 </head>
 <body>
-<div id="map"></div>
-<script src="index.js"></script>
+	<div id="sidebar" class="sidebar collapsed">
+		<ul class="sidebar-tabs" role="tablist">
+			<li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+			<li><a href="#profile" role="tab"><i class="fa fa-user"></i></a></li>
+			<li><a href="#messages" role="tab"><i class="fa fa-envelope"></i></a></li>
+			<li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
+		</ul>
+
+		<div class="sidebar-content active">
+			<div class="sidebar-pane" id="home">
+				<h1>Home</h1>
+				<p>test</p>
+			</div>
+			<div class="sidebar-pane" id="profile"><h1>Profile</h1></div>
+			<div class="sidebar-pane" id="messages"><h1>Messages</h1></div>
+			<div class="sidebar-pane" id="settings"><h1>Settings</h1></div>
+		</div>
+	</div>
+
+	<div id="map" class="sidebar-map"></div>
+
+	<script src="index.js"></script>
 </body>
 </html>

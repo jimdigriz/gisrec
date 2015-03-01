@@ -22,6 +22,7 @@
 
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
+    git submodule update --init
     npm install
 
 # Run
