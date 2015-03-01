@@ -5,3 +5,18 @@ body {
 html, body, #map {
     height: 100%;
 }
+
+input[type="checkbox"] {
+	display: none;
+}
+input[type="checkbox"] + label .fa-check {
+	display: none;
+}
+input[type="checkbox"]:checked + label .fa-check {
+	display: block;
+}
+input[type="checkbox"]:checked + label .fa-check {
+	position: relative;
+	left: .125em;
+	bottom: .125em;
+}

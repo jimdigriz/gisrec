@@ -17,19 +17,25 @@
 <body>
 	<div id="sidebar" class="sidebar collapsed">
 		<ul class="sidebar-tabs" role="tablist">
-			<li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
-			<li><a href="#profile" role="tab"><i class="fa fa-user"></i></a></li>
-			<li><a href="#messages" role="tab"><i class="fa fa-envelope"></i></a></li>
+			<li><a href="#devices" role="tab"><i class="fa fa-folder-open"></i></a></li>
 			<li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
 		</ul>
 
 		<div class="sidebar-content active">
-			<div class="sidebar-pane" id="home">
-				<h1>Home</h1>
-				<p>test</p>
+			<div class="sidebar-pane" id="devices">
+				<h1>Devices</h1>
+				<form>
+					<ul id="devices"></ul>
+					<input type="checkbox" name="unreg" id="unreg" />
+					<label for="unreg">
+						<span class="fa-stack">
+							<i class="fa fa-square-o fa-stack-1x"></i>
+							<i class="fa fa-check fa-stack-1x"></i>
+						</span>
+						<i>unregistered</i>
+					</label>
+				</form>
 			</div>
-			<div class="sidebar-pane" id="profile"><h1>Profile</h1></div>
-			<div class="sidebar-pane" id="messages"><h1>Messages</h1></div>
 			<div class="sidebar-pane" id="settings"><h1>Settings</h1></div>
 		</div>
 	</div>
