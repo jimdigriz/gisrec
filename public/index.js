@@ -37,3 +37,49 @@ document.getElementById('unreg').onclick = function() {
 		channel:	null
 	}));
 };
+
+function jsonpRequest(url) {
+	var script = document.createElement("script");
+	script.src = url;
+	script.onload = function(e) {
+		document.body.removeChild(this);
+	};
+	document.body.appendChild(script);
+}
+jsonpRequest("/data")
+
+function deviceList(payload) {
+	var ul = document.getElementById('device-list');
+	for (var d in payload.devices) {
+		var id = payload.devices[d];
+
+		var li = document.createElement('li');
+		li.setAttribute('id', id);
+
+		li.appendChild(deviceListCheckbox(id, 'location-arrow'));
+		li.appendChild(deviceListCheckbox(id, 'history'));
+		li.appendChild(document.createTextNode(id));
+
+		ul.appendChild(li);
+	}
+}
+
+function deviceListCheckbox(id, type) {
+	var form = document.createElement('form');
+
+	var input = document.createElement('input');
+	input.setAttribute('id', id+' '+type);
+	input.setAttribute('type', 'checkbox');
+	input.setAttribute('name', id+' '+type);
+	form.appendChild(input);
+
+	var label = document.createElement('label');
+	label.setAttribute('for', id+' '+type);
+	form.appendChild(label);
+
+	var box = document.createElement('i');
+	box.setAttribute('class', 'fa fa-'+type);
+	label.appendChild(box);
+
+	return form;
+}

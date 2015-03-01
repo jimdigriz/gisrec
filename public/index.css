@@ -9,14 +9,21 @@ html, body, #map {
 input[type="checkbox"] {
 	display: none;
 }
-input[type="checkbox"] + label .fa-check {
-	display: none;
-}
-input[type="checkbox"]:checked + label .fa-check {
+
+input[type="checkbox"] + label .fa-location-arrow {
 	display: block;
+	opacity: 0.3;
 }
-input[type="checkbox"]:checked + label .fa-check {
-	position: relative;
-	left: .125em;
-	bottom: .125em;
+input[type="checkbox"]:checked + label .fa-location-arrow {
+	display: block;
+	opacity: 1.0;
+}
+
+input[type="checkbox"] + label .fa-history {
+	display: block;
+	opacity: 0.3;
+}
+input[type="checkbox"]:checked + label .fa-history {
+	display: block;
+	opacity: 1.0;
 }

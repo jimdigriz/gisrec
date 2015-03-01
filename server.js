@@ -15,7 +15,32 @@ var channel = {
 	'':	[ ],
 };
 
+try {
+	fs.statSync('data/.unregistered')
+} catch(e) {
+	try {
+		fs.mkdirSync('data');
+	} catch (e) { }
+	fs.mkdirSync('data/.unregistered');
+}
+
 app.use(express.static(__dirname + '/public'));
+app.get('/data', function(req, res) {
+	fs.readdir('data', function(err, files) {
+		files.splice(files.indexOf('.unregistered'), 1);
+		
+		var payload = { devices: files };
+		jsonpResponse(res, 'deviceList', payload);
+	});
+});
+
+function jsonpResponse(res, cb, payload) {
+	res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+	res.header('Expires', '-1');
+	res.header('Pragma', 'no-cache');
+	res.header('Content-Type', 'application/javascript');
+	res.send(cb+'('+JSON.stringify(payload)+');')
+}
 
 var iid = 0;
 wss.on('connection', function(ws) {
@@ -69,15 +94,6 @@ const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?)?,([AV])?,([0-9]+(?:\.[0-9]+)?)
 
 // http://www.yourgps.de/marketplace/products/documents/xexun/User-Manual-XT-009.pdf
 const reXEXUN = /^([0-9]+),(\+?[0-9]+),(GPRMC,.*,,),[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
-
-try {
-	fs.statSync('data/.unregistered')
-} catch(e) {
-	try {
-		fs.mkdirSync('data');
-	} catch (e) { }
-	fs.mkdirSync('data/.unregistered');
-}
 
 var gis = net.createServer(function(client) {
 	var	remoteAddress = client.remoteAddress,
@@ -184,13 +200,11 @@ function processGPRMC(data, properties) {
 
 	try {
 		fs.writeFileSync('data/'+properties.id+'/'+ts.toISOString()+'.json', JSON.stringify(g));
-		informRealtime(g, properties.id);
 	} catch(e) {
 		fs.writeFileSync('data/.unregistered/'+properties.id+'.json', JSON.stringify(g));
-		informRealtime(g);
 	}
 
-	return g;
+	return;
 }
 
 function GPRMC2Degrees(value, direction) {
