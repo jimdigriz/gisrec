@@ -66,11 +66,13 @@ wss.on('connection', function(ws) {
 		switch (message.type) {
 		case 'join':
 			var c = (message.channel !== null) ? c : '';
-			channel[c].push(id);
+			if (channel[c] !== undefined)
+				channel[c].push(id);
 			break;
 		case 'leave':
 			var c = (message.channel !== null) ? c : '';
-			channel[c].splice(channel[c].indexOf(id), 1);
+			if (channel[c] !== undefined)
+				channel[c].splice(channel[c].indexOf(id), 1);
 			break;
 		}
 	});
