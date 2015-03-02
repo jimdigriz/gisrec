@@ -8,12 +8,10 @@ const WebSocketServer = require('ws').Server
 	, es = require('event-stream')
 	, fs = require('fs');
 
-const KNOTS_TO_METRES_PER_SECOND = 0.51444444444;
+const KNOTS_TO_METRES_PER_SECOND = 0.51444;
 
 var client = {};
-var channel = {
-	'':	[ ],
-};
+var channel = {};
 
 try {
 	fs.statSync('data/.unregistered')
@@ -26,7 +24,7 @@ try {
 
 app.use(express.static(__dirname + '/public'));
 app.get('/data', function(req, res) {
-	fs.readdir('data', function(err, files) {
+	fs.readdir('data', function(err, files) {	// TODO check err
 		files.splice(files.indexOf('.unregistered'), 1);
 		
 		var payload = { devices: files };
@@ -45,9 +43,31 @@ function jsonpResponse(res, cb, payload) {
 var iid = 0;
 wss.on('connection', function(ws) {
 	var id = iid++;
-	client.id = ws;
+	client[id] = ws;
+
+	function log(m) {
+		// TODO source ip:port
+		console.log('ws: '+m);
+	}
+
+	log("connected")
+
+	ws.on('close', function() {
+		log("disconnected")
+
+		Object.keys(channel).forEach(function(c) {
+			channel[c].splice(channel[c].indexOf(id), 1);
+
+			if (channel[c].length === 0)
+				delete channel[c];
+		});
+
+		delete client[id];
+	});
 
 	ws.on('message', function(msg) {
+		log('message: '+msg);
+
 		var message = JSON.parse(msg);
 
 		if (message.type === 'error') {
@@ -65,27 +85,22 @@ wss.on('connection', function(ws) {
 
 		switch (message.type) {
 		case 'join':
-			var c = (message.channel !== null) ? c : '';
-			if (channel[c] !== undefined)
+			var c = (message.channel !== null) ? message.channel : '';
+			if (channel[c] === undefined)
+				channel[c] = [ id ];
+			else
 				channel[c].push(id);
 			break;
 		case 'leave':
-			var c = (message.channel !== null) ? c : '';
-			if (channel[c] !== undefined)
-				channel[c].splice(channel[c].indexOf(id), 1);
+			if (channel[c] === undefined)
+				break;
+
+			channel[c].splice(channel[c].indexOf(id), 1);
+
+			if (channel[c].length === 0)
+				delete channel[c];
 			break;
 		}
-	});
-
-	ws.on('close', function() {
-		Object.keys(channel).forEach(function(c) {
-			delete channel[c].id;
-
-			if (c !== '' && channel.c.length === 0)
-				delete channel.c;
-		});
-
-		delete client.id;
 	});
 });
 
@@ -97,15 +112,20 @@ const reGPRMC = /^\$GPRMC,([0-9]{6}(?:\.[0-9]+)?)?,([AV])?,([0-9]+(?:\.[0-9]+)?)
 // http://www.yourgps.de/marketplace/products/documents/xexun/User-Manual-XT-009.pdf
 const reXEXUN = /^([0-9]+),(\+?[0-9]+),(GPRMC,.*,,),[A-Z](\*[0-9]+),([FL]),([^,]*), ?imei:([0-9]*),([0-9]*),([0-9]+(?:\.[0-9]+)?),([FL]):([0-9]+(?:\.[0-9]+)?)V,([01]),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9A-F]+),([0-9A-F]+)$/;
 
-var gis = net.createServer(function(client) {
-	var	remoteAddress = client.remoteAddress,
-		remotePort = client.remotePort;
-	console.log('['+remoteAddress+']:'+remotePort+': connected');
+var gis = net.createServer(function(sock) {
+	var	remoteAddress = sock.remoteAddress,
+		remotePort = sock.remotePort;
 
-	client.on('close', function(client) {
-		console.log('['+remoteAddress+']:'+remotePort+': disconnected');
+	function log(m) {
+		console.log('gis: ['+remoteAddress+']:'+remotePort+': '+m);
+	}
+
+	log('connected');
+
+	sock.on('close', function() {
+		log('disconnected');
 	});
-	client.pipe(es.split()).pipe(es.map(function (data) {
+	sock.pipe(es.split()).pipe(es.map(function (data) {
 		var meta = {
 			'id':		null,
 			'raw':		data,
@@ -118,7 +138,7 @@ var gis = net.createServer(function(client) {
 		case data === '':
 			break;
 		case reXEXUN.test(data):
-			console.log('['+remoteAddress+']:'+remotePort+': converting xexun');
+			log('received Xexun payload, converting to GPRMC');
 
 			meta.xexun		= {};
 			meta.protocol.push('xexun');
@@ -148,102 +168,105 @@ var gis = net.createServer(function(client) {
 
 			meta.id = meta.xexun.imei;
 		case reGPRMC.test(data):
-			console.log('['+remoteAddress+']:'+remotePort+': recording gprmc');
+			log('processing GPRMC');
 			meta.protocol.push('gprmc');
 			processGPRMC(data, meta);
 			break;
 		default:
-			console.log('['+remoteAddress+']:'+remotePort+': unknown format: '. data);
-			client.end();
+			log("received unparsable data: '"+data+"', closing connection");
+			sock.end();
 		}
 	}));
+
+	function processGPRMC(data, properties) {
+		if (properties.id === null) {
+			log("'id' is not set, unable to save data");
+			return;
+		}
+
+		var match = reGPRMC.exec(data);
+		var	time = match[1],
+			validity = ( match[2] === 'A' ) ? 1 : 0,
+			latitude = parseFloat(match[3]),	hemisphere = match[4],
+			longitude = parseFloat(match[5]),	handedness = match[6],
+			speed = parseFloat((match[7]*KNOTS_TO_METRES_PER_SECOND).toFixed(3)),
+			cmg = parseFloat(match[8]),
+			date = match[9],
+			magvar = parseFloat(match[10]),		maghandedness = match[11],
+			checksum = parseInt(match[12]);
+
+		var	dateParts = /([0-9]{2})([0-9]{2})([0-9]{2})/.exec(date);
+		var	d = dateParts[1], m = dateParts[2] - 1, y = '20'+dateParts[3];
+		var	timeParts = /([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]{3}))/.exec(time);
+		var	H = timeParts[1], M = timeParts[2], S = timeParts[3], ms = timeParts[4] || 0;
+
+		var	ts = new Date(y, m, d, H, M, S, ms);
+
+		var point = {
+			latitude:	GPRMC2Degrees(latitude, hemisphere),
+			longitude:	GPRMC2Degrees(longitude, handedness),
+		};
+
+		properties.time				= parseFloat((ts/1000.0).toFixed(3));
+
+		properties.gprmc			= {};
+		properties.gprmc.raw			= data;
+		properties.gprmc.speed			= speed;
+		properties.gprmc['course-made-good']	= cmg;
+		properties.gprmc['magnetic-variance']	= GPRMC2Degrees(magvar, maghandedness);
+		properties.gprmc.checksum		= checksum
+
+		var g = toGeoJSON(point, properties);
+
+		// TODO bind g
+		fs.stat('data/'+properties.id, function(err, stat) {
+			var id = properties.id;
+			var chan = (err === undefined) ? id : '';
+			var name = (err === undefined)
+				? id+'/'+ts.toISOString()+'.json'
+				: '.unregistered/'+id+'.json';
+
+			function cb(err) {
+				if (err)
+					log('unable to save data: '+err);
+				if (channel[chan] === undefined)
+					return;
+
+				channel[chan].forEach(function(c) {
+					client[c].send(JSON.stringify({ tag: null, type: 'realtime', channel: chan, geojson: g }));
+				});
+			};
+
+			// TODO temp file
+			fs.writeFile('data/'+name, JSON.stringify(g), cb);
+		});
+
+		return;
+	}
+
+	function GPRMC2Degrees(value, direction) {
+		// http://www.mapwindow.org/phorum/read.php?3,16271
+		var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
+
+		if (direction === 'S' || direction === 'W')
+			d *= -1;
+
+		// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
+		return parseFloat(d.toFixed(5));
+	}
 });
 
 gis.listen(process.env.PORT_GIS || 27271, '::');
 
-function processGPRMC(data, properties) {
-	if (properties.id === null) {
-		console.log("'id' is not set, unable to save data");
-		return;
-	}
-
-	var match = reGPRMC.exec(data);
-	var	time = match[1],
-		validity = ( match[2] === 'A' ) ? 1 : 0,
-		latitude = parseFloat(match[3]),	hemisphere = match[4],
-		longitude = parseFloat(match[5]),	handedness = match[6],
-		speed = parseFloat((match[7]*KNOTS_TO_METRES_PER_SECOND).toFixed(3)),
-		cmg = parseFloat(match[8]),
-		date = match[9],
-		magvar = parseFloat(match[10]),		maghandedness = match[11],
-		checksum = parseInt(match[12]);
-
-	var	dateParts = /([0-9]{2})([0-9]{2})([0-9]{2})/.exec(date);
-	var	d = dateParts[1], m = dateParts[2] - 1, y = '20'+dateParts[3];
-	var	timeParts = /([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]{3}))/.exec(time);
-	var	H = timeParts[1], M = timeParts[2], S = timeParts[3], ms = timeParts[4] || 0;
-
-	var	ts = new Date(y, m, d, H, M, S, ms);
-
-	var multipoint = [ {
-		latitude:	GPRMC2Degrees(latitude, hemisphere),
-		longitude:	GPRMC2Degrees(longitude, handedness),
-		time:		parseFloat((ts/1000.0).toFixed(3)),
-	} ];
-
-	properties.gprmc			= {};
-	properties.gprmc.raw			= data;
-	properties.gprmc.speed			= speed;
-	properties.gprmc['course-made-good']	= cmg;
-	properties.gprmc['magnetic-variance']	= GPRMC2Degrees(magvar, maghandedness);
-	properties.gprmc.checksum		= checksum
-
-	var g = toGeoJSON(multipoint, properties);
-
-	try {
-		fs.writeFileSync('data/'+properties.id+'/'+ts.toISOString()+'.json', JSON.stringify(g));
-	} catch(e) {
-		fs.writeFileSync('data/.unregistered/'+properties.id+'.json', JSON.stringify(g));
-	}
-
-	return;
-}
-
-function GPRMC2Degrees(value, direction) {
-	// http://www.mapwindow.org/phorum/read.php?3,16271
-	var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
-
-	if (direction === 'S' || direction === 'W')
-		d *= -1;
-
-	// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
-	return parseFloat(d.toFixed(5));
-}
-
-function toGeoJSON(multipoint, prop) {
-	prop.time = [];
-
+function toGeoJSON(point, prop) {
 	var geojson = {
 		type:			'Feature',
 		geometry: {
-			type:		'MultiPoint',
-			coordinates:	[],
+			type:		'Point',
+			coordinates:	[ point.longitude, point.latitude ],
 		},
 		properties:		prop,
 	};
 
-	multipoint.forEach(function(m) {
-		geojson.geometry.coordinates.push([ m.longitude, m.latitude ]);
-		geojson.properties.time.push(m.time);
-	});
-
 	return geojson;
-}
-
-function informRealtime(g, id) {
-	var c = (id !== undefined) ? channel.id : channel[''];
-
-	c.forEach(function(id) {
-		client[id].send(JSON.stringify({ type: 'realtime', geojson: g, id: id }));
-	});
 }

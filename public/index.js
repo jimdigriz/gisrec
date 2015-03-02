@@ -1,3 +1,5 @@
+var debug = false;
+
 var map = L.map('map').fitWorld().zoomIn();
 
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -6,24 +8,32 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 
 var sidebar = L.control.sidebar('sidebar').addTo(map);
 
-var marker = { };
+var channel = { };
 
 var tag = 0;
 var connection = new WebSocket('ws://' + location.host);
-connection.onconnection = function() {
-	connection.onclose = function(e) { console.log(e); };
+connection.onopen = function() {
+	function log(m) {
+		if (debug)
+			console.log('GISrec:ws: '+m);
+	}
+
+	log('connected');
+
+	connection.onclose = function(e) { log('disconnected: '+e); };
 	connection.onmessage = function(e) {
+		log("message: "+e.data);
+
 		var message = JSON.parse(e.data);
+
 		switch (message.type) {
 		case 'error':
-			console.log("GISrec ws error: "+message.text);
 			break;
 		case 'realtime':
-			var id = message.geojson.properties.id;
-			if (marker.id === undefined) {
-				marker.id = L.geoJson(message.geojson).addTo(map);
+			if (channel[message.channel] === undefined) {
+				channel[message.channel] = L.geoJson(message.geojson).addTo(map);
 			} else {
-				marker.id.addData(message.geojson);
+				channel[message.channel].addData(message.geojson);
 			}
 			break;
 		}
@@ -80,11 +90,21 @@ function check(element) {
 	var type = element.id.split(' ')[0];
 	var chan = element.id.split(' ')[1] || null;
 
-	if (type === "location-arrow") {
+	switch (type) {
+	case "debug":
+		debug = (element.checked) ? true : false;
+		break;
+	case "location-arrow":
 		connection.send(JSON.stringify({
 			tag:		tag++,
 			type:		(element.checked) ? 'join' : 'leave',
 			channel:	chan,
 		}));
+
+		if (!element.checked && channel[chan] !== undefined) {
+			channel[chan].removeFrom(map);
+			delete channel[chan];
+		}
+		break;
 	}
 }
