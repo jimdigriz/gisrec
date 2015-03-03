@@ -24,11 +24,14 @@ try {
 
 app.use(express.static(__dirname + '/public'));
 app.get('/data', function(req, res) {
+	if (req.query.callback === undefined)
+		res.send(400);
+
 	fs.readdir('data', function(err, files) {	// TODO check err
 		files.splice(files.indexOf('.unregistered'), 1);
 		
 		var payload = { devices: files };
-		jsonpResponse(res, 'deviceList', payload);
+		jsonpResponse(res, req.query.callback, payload);
 	});
 });
 

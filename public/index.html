@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
 	<title>GISrec</title>
 
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-	<link rel="stylesheet" href="index.css" />
-
-	<link rel="stylesheet" href="leaflet.css" />
-	<script src="leaflet.js"></script>
-
-	<link rel="stylesheet" href="leaflet-sidebar.min.css" />
-	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
-	<script src="leaflet-sidebar.min.js"></script>
+	<link rel="stylesheet" href="css/index.css" />
+	<link rel="stylesheet" href="css/font-awesome.min.css">
+	<link rel="stylesheet" href="css/bootstrap.min.css" />
+	<link rel="stylesheet" href="css/bootstrap-theme.min.css" />
+	<link rel="stylesheet" href="css/leaflet.css" />
+	<link rel="stylesheet" href="css/leaflet-sidebar.min.css" />
 </head>
 <body>
 	<div id="sidebar" class="sidebar collapsed">
@@ -24,30 +24,27 @@
 		<div class="sidebar-content active">
 			<div class="sidebar-pane" id="devices">
 				<h1>Devices</h1>
-				<ul id="device-list"></ul>
-				<form>
-					<i>unregistered</i>
-					<input id="location-arrow" type="checkbox" onclick="javascript:check(this)"/>
-					<label for="location-arrow">
-						<i class="fa fa-location-arrow"></i>
-					</label>
-				</form>
 			</div>
 			<div class="sidebar-pane" id="settings">
 				<h1>Settings</h1>
-				<form>
-					<i>debugging</i>
-					<input id="debug" type="checkbox" onclick="javascript:check(this)"/>
-					<label for="debug">
-						<i class="fa fa-bug"></i>
-					</label>
-				</form>
+				<div class="btn-group" data-toggle="buttons-checkbox">
+					<button type="button" class="btn btn-primary">Debug</button>
+				</div>
 			</div>
 		</div>
 	</div>
 
 	<div id="map" class="sidebar-map"></div>
 
-	<script src="index.js"></script>
+	<script src="js/jquery-2.1.3.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/leaflet.js"></script>
+	<script src="js/leaflet-sidebar.min.js"></script>
+	<script src="js/index.js"></script>
+        <script>
+		$( document ).ready(function() {
+			gisrec();
+		});
+	</script>
 </body>
 </html>

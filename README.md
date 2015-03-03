@@ -6,9 +6,8 @@
 
 ## Issues
 
- * needs GUI
-  * [LeafletJS](http://leafletjs.com/)
-  * for [historic playback](https://github.com/hallahan/LeafletPlayback)
+ * for [historic playback](https://github.com/hallahan/LeafletPlayback)
+ * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * basic configuration
   * filter unsolicited requests
  * data storage format
