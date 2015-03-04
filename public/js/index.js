@@ -1,8 +1,37 @@
 var debug = $('#debug').hasClass('active');
 $('#debug').click(function ( event ){
-	$(this).button("toggle");
+	$(this).button('toggle');
 
 	debug = $(this).hasClass('active');
+});
+
+var xhr = {};
+
+$('#devicelist-refresh').click(function ( event ){
+	function cleanup () {
+		$('#devicelist-refresh i').toggleClass('fa-spin');
+		delete xhr['devicelist-refresh'];
+	}
+
+	if (xhr['devicelist-refresh'] !== undefined) {
+		xhr['devicelist-refresh'].abort();
+		cleanup();
+		return;
+	}
+
+	$('#devicelist-refresh i').toggleClass('fa-spin');
+
+	xhr['devicelist-refresh'] = $.ajax({
+		dataType: 'jsonp',
+		jsonp: 'callback',
+		url: '/data?callback=?',                    
+		success: function(data) {
+			cleanup();
+		},
+		error: function(data) {
+			cleanup();
+		}
+	});
 });
 
 var map = L.map('map').fitWorld().zoomIn();
@@ -16,7 +45,6 @@ function gisrec() {
 	var channel = { };
 
 	var connection = new WebSocket('ws://' + location.host);
-
 	connection.onopen = function() {
 		function log(m) {
 			if (debug)
@@ -44,4 +72,6 @@ function gisrec() {
 			}
 		};
 	};
+
+	$('#devicelist').click();
 }

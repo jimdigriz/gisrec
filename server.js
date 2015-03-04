@@ -25,23 +25,19 @@ try {
 app.use(express.static(__dirname + '/public'));
 app.get('/data', function(req, res) {
 	if (req.query.callback === undefined)
-		res.send(400);
+		res.status(400).jsonp({ error: "missing 'callback'" });
 
 	fs.readdir('data', function(err, files) {	// TODO check err
 		files.splice(files.indexOf('.unregistered'), 1);
 		
-		var payload = { devices: files };
-		jsonpResponse(res, req.query.callback, payload);
+		res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+		res.header('Expires', '-1');
+		res.header('Pragma', 'no-cache');
+		res.header('Content-Type', 'application/javascript');
+
+		res.jsonp({ devices: files });
 	});
 });
-
-function jsonpResponse(res, cb, payload) {
-	res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-	res.header('Expires', '-1');
-	res.header('Pragma', 'no-cache');
-	res.header('Content-Type', 'application/javascript');
-	res.send(cb+'('+JSON.stringify(payload)+');')
-}
 
 var iid = 0;
 wss.on('connection', function(ws) {
@@ -223,11 +219,10 @@ var gis = net.createServer(function(sock) {
 
 		var g = toGeoJSON(point, properties);
 
-		// TODO bind g
 		fs.stat('data/'+properties.id, function(err, stat) {
 			var id = properties.id;
-			var chan = (err === undefined) ? id : '';
-			var name = (err === undefined)
+			var chan = (err === null) ? id : '';
+			var name = (err === null)
 				? id+'/'+ts.toISOString()+'.json'
 				: '.unregistered/'+id+'.json';
 
@@ -249,7 +244,7 @@ var gis = net.createServer(function(sock) {
 
 			// TODO temp file
 			fs.writeFile('data/'+name, JSON.stringify(g), cb);
-		});
+		}.bind(g));
 
 		return;
 	}

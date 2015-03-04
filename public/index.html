@@ -17,17 +17,21 @@
 <body>
 	<div id="sidebar" class="sidebar collapsed">
 		<ul class="sidebar-tabs" role="tablist">
-			<li><a href="#devices" role="tab"><i class="fa fa-folder-open"></i></a></li>
-			<li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
+			<li><a href="#devices" role="tab"><i class="fa fa-thumb-tack"></i></a></li>
+			<li><a href="#settings" role="tab"><i class="fa fa-cog"></i></a></li>
 		</ul>
 
 		<div class="sidebar-content active">
 			<div class="sidebar-pane" id="devices">
 				<h1>Devices</h1>
+				<button type="button" class="btn btn-default" id="devicelist-refresh">Refresh <i class="fa fa-refresh"></i></button>
+				<table>
+					
+				</table>
 			</div>
 			<div class="sidebar-pane" id="settings">
 				<h1>Settings</h1>
-				<button type="button" class="btn btn-primary" id="debug">Debug</button>
+				<button type="button" class="btn btn-default" id="debug">Debug <i class="fa fa-bug"></i></button>
 			</div>
 		</div>
 	</div>
