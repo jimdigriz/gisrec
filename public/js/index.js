@@ -1,7 +1,9 @@
-var debug = false;
-var channel = { };
+var debug = $('#debug').hasClass('active');
+$('#debug').click(function ( event ){
+	$(this).button("toggle");
 
-var tag = 0;
+	debug = $(this).hasClass('active');
+});
 
 var map = L.map('map').fitWorld().zoomIn();
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -10,6 +12,9 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 var sidebar = L.control.sidebar('sidebar').addTo(map);
 
 function gisrec() {
+	var tag = 0;
+	var channel = { };
+
 	var connection = new WebSocket('ws://' + location.host);
 
 	connection.onopen = function() {
@@ -17,8 +22,6 @@ function gisrec() {
 			if (debug)
 				console.log('GISrec:ws: '+m);
 		}
-
-		log('connected');
 
 		connection.onclose = function(e) { log('disconnected: '+e); };
 		connection.onmessage = function(e) {
@@ -38,5 +41,9 @@ function gisrec() {
 				break;
 			}
 		};
+
+		log('connected');
+
+		connection.send(JSON.stringify({tag: tag++, channel: null, type: "join"}));
 	};
 }

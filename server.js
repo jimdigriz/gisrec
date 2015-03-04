@@ -235,8 +235,8 @@ var gis = net.createServer(function(sock) {
 				if (channel[chan] === undefined)
 					return;
 
-				channel[chan].forEach(function(c) {
-					client[c].send(JSON.stringify({ tag: null, type: 'realtime', channel: chan, geojson: g }));
+				channel[chan].forEach(function(i) {
+					client[i].send(JSON.stringify({ tag: null, type: 'realtime', channel: chan, geojson: g }));
 				});
 			};
 
