@@ -48,9 +48,11 @@ wss.on('connection', function(ws) {
 	var id = iid++;
 	client[id] = ws;
 
+	var	remoteAddress = ws._socket.remoteAddress,
+		remotePort = ws._socket.remotePort;
+
 	function log(m) {
-		// TODO source ip:port
-		console.log('ws: '+m);
+		console.log('ws: ['+remoteAddress+']:'+remotePort+': '+m);
 	}
 
 	log("connected")

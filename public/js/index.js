@@ -23,6 +23,8 @@ function gisrec() {
 				console.log('GISrec:ws: '+m);
 		}
 
+		log('connected');
+
 		connection.onclose = function(e) { log('disconnected: '+e); };
 		connection.onmessage = function(e) {
 			log("message: "+e.data);
@@ -41,9 +43,5 @@ function gisrec() {
 				break;
 			}
 		};
-
-		log('connected');
-
-		connection.send(JSON.stringify({tag: tag++, channel: null, type: "join"}));
 	};
 }
