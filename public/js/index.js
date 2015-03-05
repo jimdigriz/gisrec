@@ -42,7 +42,7 @@ function gisrec(){
 					break;
 				}
 
-				if (typeof channel[message.channel] === "object")
+				if (typeof channel[message.channel] === 'object')
 					channel[message.channel].addData(message.geojson)
 				else
 					channel[message.channel] = L.geoJson(message.geojson).addTo(map)
@@ -89,7 +89,7 @@ function gisrec(){
 				var e = $('#devicelist #'+i+' #'+a+' i')
 				e.toggleClass('gisrec-inactive');
 
-				if (channel[i]) {
+				if (channel[i] !== undefined) {
 					var m = channel[i];
 					delete channel[i];
 					map.removeLayer(m);
