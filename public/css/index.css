@@ -1,7 +1,11 @@
 body {
-    padding: 0;
-    margin: 0;
+	padding: 0;
+	margin: 0;
 }
 html, body, #map {
-    height: 100%;
+	height: 100%;
+}
+
+.gisrec-inactive {
+	opacity: 0.3;
 }

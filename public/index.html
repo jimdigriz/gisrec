@@ -23,11 +23,14 @@
 
 		<div class="sidebar-content active">
 			<div class="sidebar-pane" id="devices">
-				<h1>Devices</h1>
-				<button type="button" class="btn btn-default" id="devicelist-refresh">Refresh <i class="fa fa-refresh"></i></button>
-				<table>
-					
-				</table>
+				<div style="width: 100%; display: table;">
+					<div style="display: table-row;">
+						<div style="display: table-cell;"><h1>Devices</h1></div>
+						<div style="display: table-cell;"><i class="fa fa-lg fa-refresh" id="devicelist-refresh"></i></div>
+						<div style="display: table-cell;"><i class="fa fa-lg fa-plus" id="devicelist-plus"></i></div>
+					</div>
+				</div>
+				<table class="table fa fa-lg" id="devicelist"><tbody></tbody></table>
 			</div>
 			<div class="sidebar-pane" id="settings">
 				<h1>Settings</h1>

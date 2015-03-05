@@ -87,12 +87,15 @@ wss.on('connection', function(ws) {
 		switch (message.type) {
 		case 'join':
 			var c = (message.channel !== null) ? message.channel : '';
+
 			if (channel[c] === undefined)
 				channel[c] = [ id ];
 			else
 				channel[c].push(id);
+
 			break;
 		case 'leave':
+			var c = (message.channel !== null) ? message.channel : '';
 			if (channel[c] === undefined)
 				break;
 
@@ -100,6 +103,7 @@ wss.on('connection', function(ws) {
 
 			if (channel[c].length === 0)
 				delete channel[c];
+
 			break;
 		}
 	});
@@ -220,11 +224,10 @@ var gis = net.createServer(function(sock) {
 		var g = toGeoJSON(point, properties);
 
 		fs.stat('data/'+properties.id, function(err, stat) {
-			var id = properties.id;
-			var chan = (err === null) ? id : '';
+			var chan = properties.id;
 			var name = (err === null)
-				? id+'/'+ts.toISOString()+'.json'
-				: '.unregistered/'+id+'.json';
+				? chan+'/'+ts.toISOString()
+				: '.unregistered/'+chan;
 
 			function cb(err) {
 				if (err)
@@ -243,7 +246,7 @@ var gis = net.createServer(function(sock) {
 			};
 
 			// TODO temp file
-			fs.writeFile('data/'+name, JSON.stringify(g), cb);
+			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb);
 		}.bind(g));
 
 		return;
