@@ -38,7 +38,8 @@ function gisrec(){
 			case 'realtime':
 				if (message.channel === null) {
 					message.channel = message.geojson.properties.id;
-					channel[message.channel] = '';
+					if (channel[message.channel] === undefined)
+						channel[message.channel] = '';
 
 					$('#devicelist-unreg > tbody').append('<tr id="'+message.channel+'"><th>'+message.channel+'</th><td id="add"><i class="fa fa-plus"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
 				}
@@ -150,7 +151,28 @@ function gisrec(){
 				}
 				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));
 				break;
+			}
+		});
 
+		$('#devicelist-unreg').click(function ( event ){
+			var i = $(event.target).closest('tr').attr('id');
+			var a = $(event.target).closest('td').attr('id');
+
+			switch (a) {
+			case "add":
+				connection.send(JSON.stringify({tag: tag++, type: 'register', channel: i}));
+				$('#devicelist-unreg #'+i).remove();
+				$('#devicelist > tbody').append('<tr id="'+i+'"><th>'+i+'</th><td id="location"><i class="fa fa-location-arrow gisrec-inactive"></i></td><td id="history"><i class="fa fa-history gisrec-inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+				$('#devicelist #'+i+' #location').click();
+				break;
+			case "delete":
+				$('#devicelist-unreg #'+i).remove();
+				if (channel[i] !== undefined) {
+					map.removeLayer(channel[i]);
+					delete channel[i];
+				}
+				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));
+				break;
 			}
 		});
 

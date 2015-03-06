@@ -119,15 +119,15 @@ wss.on('connection', function(ws) {
 		case 'register':	// TODO broadcast event
 			try {
 				fs.mkdirSync('data/'+message.channel);
-				var src = 'data/.unregistered/'+message.channel;
-				var ts = JSON.parse(fs.readFileSync(src)).properties.ts;
-				fs.renameSync(src, 'data/'+id+'/'+ts.toISOString());
+				var src = 'data/.unregistered/'+message.channel+'.json';
+				var ts = new Date(JSON.parse(fs.readFileSync(src)).properties.time * 1000);
+				fs.renameSync(src, 'data/'+message.channel+'/'+ts.toISOString()+'.json');
 			} catch (e) { log(e) }
 			break;
 		case 'unregister':	// TODO broadcast event
 			try {
 				rimraf.sync('data/'+message.channel);
-				fs.unlinkSync('data/.unregistered/'+message.channel);
+				fs.unlinkSync('data/.unregistered/'+message.channel+'.json');
 			} catch (e) { log(e) }
 			break;
 		default:
