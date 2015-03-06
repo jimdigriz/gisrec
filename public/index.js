@@ -42,9 +42,10 @@ function gisrec(){
 					break;
 				}
 
-				if (typeof channel[message.channel] === 'object')
-					channel[message.channel].addData(message.geojson)
-				else
+				if (typeof channel[message.channel] === 'object') {
+					channel[message.channel].clearLayers();
+					channel[message.channel].addData(message.geojson);
+				} else
 					channel[message.channel] = L.geoJson(message.geojson).addTo(map)
 				break;
 			}
