@@ -127,6 +127,7 @@ wss.on('connection', function(ws) {
 		case 'unregister':	// TODO broadcast event
 			try {
 				rimraf.sync('data/'+message.channel);
+				fs.unlinkSync('data/.unregistered/'+message.channel);
 			} catch (e) { log(e) }
 			break;
 		default:
