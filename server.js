@@ -6,7 +6,8 @@ const WebSocketServer = require('ws').Server
 	, wss = new WebSocketServer({ server: server })
 	, net = require('net')
 	, es = require('event-stream')
-	, fs = require('fs');
+	, fs = require('fs')
+	, rimraf = require('rimraf');
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444;
 
@@ -82,6 +83,16 @@ wss.on('connection', function(ws) {
 				type:	'error',
 				text:	'missing tag',
 			}));
+			return;
+		}
+
+		if (!message.channel.match(/^[a-z0-9-_]+/i)) {
+			ws.send(JSON.stringify({
+				tag:	tag,
+				type:	'error',
+				text:	'invalid channel id',
+			}));
+			return;
 		}
 
 		switch (message.type) {
@@ -104,6 +115,26 @@ wss.on('connection', function(ws) {
 			if (channel[c].length === 0)
 				delete channel[c];
 
+			break;
+		case 'register':
+			try {
+				fs.mkdirSync('data/'+message.channel);
+				var src = 'data/.unregistered/'+message.channel;
+				var ts = JSON.parse(fs.readFileSync(src)).properties.ts;
+				fs.renameSync(src, 'data/'+id+'/'+ts.toISOString());
+			} catch (e) { log(e) }
+			break;
+		case 'unregister':
+			try {
+				rimraf.sync('data/'+message.channel);
+			} catch (e) { log(e) }
+			break;
+		default:
+			ws.send(JSON.stringify({
+				tag:	tag,
+				type:	'error',
+				text:	"unknown command '"+message.type+"'",
+			}));
 			break;
 		}
 	});

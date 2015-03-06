@@ -70,8 +70,16 @@ function gisrec(){
 				jsonp: 'callback',
 				url: '/data?callback=?',                    
 				success: function(data){
-					data.devices.forEach(function ( id ){
+					var p = {};
+					$('#devicelist tr[id]').map(function() { p[this.id] = 1; });
+
+					data.devices.filter(function(i) { return p[i] === undefined }).forEach(function ( id ){
 						$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow gisrec-inactive"></i></td><td id="history"><i class="fa fa-history gisrec-inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+						p[id] = 1;
+					});
+
+					Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function ( id ){
+						$('#devicelist #'+id).remove();
 					});
 					cleanup();
 				},
@@ -106,6 +114,17 @@ function gisrec(){
 			case "history":
 				$('#devicelist #'+i+' #'+a+' i').toggleClass('gisrec-inactive');
 				break;
+			case "delete":
+				$('#devicelist #'+i).remove();
+				if (channel[i] !== undefined) {
+					var m = channel[i];
+					delete channel[i];
+					map.removeLayer(m);
+					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
+				}
+				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));
+				break;
+
 			}
 		});
 
