@@ -36,6 +36,13 @@ function gisrec(){
 			case 'error':
 				break;
 			case 'realtime':
+				if (message.channel === null) {
+					message.channel = message.geojson.properties.id;
+					channel[message.channel] = '';
+
+					$('#devicelist-unreg > tbody').append('<tr id="'+message.channel+'"><th>'+message.channel+'</th><td id="add"><i class="fa fa-plus"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+				}
+
 				if (channel[message.channel] === undefined) {
 					connection.send(JSON.stringify({tag: tag++, type: 'error', text: "unsolicited realtime message for channel '"+message.channel+"', leaving"}));
 					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: message.channel}));
@@ -63,7 +70,7 @@ function gisrec(){
 				return;
 			}
 
-			$('#devicelist-refresh i').toggleClass('fa-spin');
+			$('> i').toggleClass('fa-spin');
 
 			xhr['devicelist-refresh'] = $.ajax({
 				dataType: 'jsonp',
@@ -78,8 +85,13 @@ function gisrec(){
 						p[id] = 1;
 					});
 
-					Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function ( id ){
-						$('#devicelist #'+id).remove();
+					Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function ( i ){
+						$('#devicelist #'+i).remove();
+						if (channel[i] !== undefined) {
+							map.removeLayer(channel[i]);
+							delete channel[i];
+							connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
+						}
 					});
 					cleanup();
 				},
@@ -87,6 +99,22 @@ function gisrec(){
 					cleanup();
 				}
 			});
+		});
+
+		$('#devicelist-plus').click(function ( event ){
+			$('#devicelist-plus').toggleClass('gisrec-inactive');
+			$('#devicelist-unreg-section').toggle();
+
+			if ($('#devicelist-plus').hasClass('gisrec-inactive')) {
+				connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: null}));
+				$('#devicelist-unreg tr[id]').map(function() {
+					map.removeLayer(channel[this.id]);
+					delete channel[this.id];
+					$(this).remove();
+				});
+			} else {
+				connection.send(JSON.stringify({tag: tag++, type: 'join', channel: null}));
+			}
 		});
 
 		$('#devicelist').click(function ( event ){
@@ -99,9 +127,8 @@ function gisrec(){
 				e.toggleClass('gisrec-inactive');
 
 				if (channel[i] !== undefined) {
-					var m = channel[i];
+					map.removeLayer(channel[i]);
 					delete channel[i];
-					map.removeLayer(m);
 				}
 
 				if (e.hasClass('gisrec-inactive')) {
@@ -117,9 +144,8 @@ function gisrec(){
 			case "delete":
 				$('#devicelist #'+i).remove();
 				if (channel[i] !== undefined) {
-					var m = channel[i];
+					map.removeLayer(channel[i]);
 					delete channel[i];
-					map.removeLayer(m);
 					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
 				}
 				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));

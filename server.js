@@ -86,7 +86,7 @@ wss.on('connection', function(ws) {
 			return;
 		}
 
-		if (!message.channel.match(/^[a-z0-9-_]+/i)) {
+		if (message.channel !== null && !message.channel.match(/^[a-z0-9-_]+/i)) {
 			ws.send(JSON.stringify({
 				tag:	tag,
 				type:	'error',
@@ -116,7 +116,7 @@ wss.on('connection', function(ws) {
 				delete channel[c];
 
 			break;
-		case 'register':
+		case 'register':	// TODO broadcast event
 			try {
 				fs.mkdirSync('data/'+message.channel);
 				var src = 'data/.unregistered/'+message.channel;
@@ -124,7 +124,7 @@ wss.on('connection', function(ws) {
 				fs.renameSync(src, 'data/'+id+'/'+ts.toISOString());
 			} catch (e) { log(e) }
 			break;
-		case 'unregister':
+		case 'unregister':	// TODO broadcast event
 			try {
 				rimraf.sync('data/'+message.channel);
 			} catch (e) { log(e) }
@@ -255,22 +255,25 @@ var gis = net.createServer(function(sock) {
 		var g = toGeoJSON(point, properties);
 
 		fs.stat('data/'+properties.id, function(err, stat) {
-			var chan = properties.id;
+			var chan = (err === null) ? properties.id : '';
 			var name = (err === null)
-				? chan+'/'+ts.toISOString()
-				: '.unregistered/'+chan;
+				? properties.id+'/'+ts.toISOString()
+				: '.unregistered/'+properties.id;
 
-			function cb(err) {
+			function cb( err ){
 				if (err)
 					log('unable to save data: '+err);
+
 				if (channel[chan] === undefined)
 					return;
 
 				channel[chan].forEach(function(i) {
+					log('realtime to client '+i);
+
 					client[i].send(JSON.stringify({
 						tag:		null,
 						type:		'realtime',
-						channel:	chan,
+						channel:	(chan !== '') ? properties.id : null,
 						geojson:	g,
 					}));
 				});
