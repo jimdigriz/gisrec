@@ -56,5 +56,6 @@ To disable auto-track, send:
 
 ### Related Links
 
-  * [manufacturers product page](http://www.gpstrackerchina.com/p131-GPS-Portable-Tracker-TK201-2/)
-  * [manual](http://www.jimsgpstracker.com/manual/tk201-user-manual.pdf)
+  * [Manufacturers Product Page](http://www.gpstrackerchina.com/p131-GPS-Portable-Tracker-TK201-2/)
+  * [Manual](http://www.jimsgpstracker.com/manual/tk201-user-manual.pdf)
+   * [SMS API](http://g-homeserver.com/attachments/harley-davidson/1653d1361528231-harley-g-5-alarmanlage-mit-gps-ortung-tracker-tracking-software-xt-009-user-manual.pdf)
