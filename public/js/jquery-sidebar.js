@@ -1,1 +1,0 @@
-../../sidebar-v2/js/jquery-sidebar.js
