@@ -10,8 +10,14 @@
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * basic configuration
   * filter unsolicited requests
+ * local storage for naming/groups, plus share back to server
+ * group broadcast events (reg/unreg)
+ * meta data tagging/hovers/etc
+ * make use of layers
+ * pruner for old unreg devices
+ * auto-zoom/focus
  * data storage format
-  * recording coalesce
+  * recording coalescer
   * HTTP cache friendly
   * record *device* location, but a device can be attached for periods
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
