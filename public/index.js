@@ -127,16 +127,16 @@ function gisrec(){
 				var e = $('#devicelist #'+i+' #'+a+' i')
 				e.toggleClass('gisrec-inactive');
 
-				if (channel[i] !== undefined) {
-					map.removeLayer(channel[i]);
-					delete channel[i];
-				}
-
 				if (e.hasClass('gisrec-inactive')) {
 					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
+					if (channel[i] !== undefined) {
+						map.removeLayer(channel[i]);
+						delete channel[i];
+					}
 				} else {
 					connection.send(JSON.stringify({tag: tag++, type: 'join', channel: i}));
-					channel[i] = '';
+					if (channel[i] === undefined)
+						channel[i] = '';
 				}
 				break;
 			case "history":
