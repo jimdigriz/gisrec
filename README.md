@@ -22,6 +22,7 @@
   * record *device* location, but a device can be attached for periods
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
  * check xexun length and crc16
+ * websocket reconnect
 
 # Preflight
 
