@@ -59,7 +59,12 @@ data.on('*', function(event, properties, sender) {
 	});
 });
 
-var timeline = new vis.Timeline($('#timeline').get(0), data);
+var timeline = new vis.Timeline($('#timeline').get(0), data, {
+	editable: {
+		updateGroup: true,
+		remove: true,
+	},
+});
 
 var tag = 0;
 var channel = { };
@@ -102,7 +107,7 @@ connection.onopen = function(){
 
 			data.update({
 				id: message.channel,
-				text: message.channel,
+				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
 				geojson: message.geojson
 			}, 'realtime');
