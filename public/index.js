@@ -39,7 +39,7 @@ data.on('*', function(event, properties, sender) {
 			break;
 		case 'update':
 			var d = data.get(id);
-			var o = properties.data[i];
+			var o = properties.data[id];
 
 			switch (sender) {
 			case 'realtime':
