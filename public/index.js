@@ -82,7 +82,7 @@ function gisrec(){
 					$('#devicelist tr[id]').map(function() { p[this.id] = 1; });
 
 					data.devices.filter(function(i) { return p[i] === undefined }).forEach(function ( id ){
-						$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow gisrec-inactive"></i></td><td id="history"><i class="fa fa-history gisrec-inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+						$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
 						p[id] = 1;
 					});
 
@@ -103,10 +103,10 @@ function gisrec(){
 		});
 
 		$('#devicelist-plus').click(function ( event ){
-			$('#devicelist-plus').toggleClass('gisrec-inactive');
+			$('#devicelist-plus').toggleClass('inactive');
 			$('#devicelist-unreg-section').toggle();
 
-			if ($('#devicelist-plus').hasClass('gisrec-inactive')) {
+			if ($('#devicelist-plus').hasClass('inactive')) {
 				connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: null}));
 				$('#devicelist-unreg tr[id]').map(function() {
 					map.removeLayer(channel[this.id]);
@@ -125,9 +125,9 @@ function gisrec(){
 			switch (a) {
 			case "location":
 				var e = $('#devicelist #'+i+' #'+a+' i')
-				e.toggleClass('gisrec-inactive');
+				e.toggleClass('inactive');
 
-				if (e.hasClass('gisrec-inactive')) {
+				if (e.hasClass('inactive')) {
 					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
 					if (channel[i] !== undefined) {
 						map.removeLayer(channel[i]);
@@ -140,7 +140,7 @@ function gisrec(){
 				}
 				break;
 			case "history":
-				$('#devicelist #'+i+' #'+a+' i').toggleClass('gisrec-inactive');
+				$('#devicelist #'+i+' #'+a+' i').toggleClass('inactive');
 				break;
 			case "delete":
 				$('#devicelist #'+i).remove();
@@ -162,7 +162,7 @@ function gisrec(){
 			case "add":
 				connection.send(JSON.stringify({tag: tag++, type: 'register', channel: i}));
 				$('#devicelist-unreg #'+i).remove();
-				$('#devicelist > tbody').append('<tr id="'+i+'"><th>'+i+'</th><td id="location"><i class="fa fa-location-arrow gisrec-inactive"></i></td><td id="history"><i class="fa fa-history gisrec-inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+				$('#devicelist > tbody').append('<tr id="'+i+'"><th>'+i+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
 				$('#devicelist #'+i+' #location').click();
 				break;
 			case "delete":

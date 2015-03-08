@@ -2,10 +2,25 @@ body {
 	padding: 0;
 	margin: 0;
 }
+
 html, body, #map {
 	height: 100%;
 }
 
-.gisrec-inactive {
+.inactive {
 	opacity: 0.3;
+}
+
+.timeline {
+	position: absolute;
+	left: 10px;
+	bottom: 10px;		/* opera is offset by address bar ~+46px */
+	right: 10px;
+	height: 100px;
+	z-index: 2000;
+
+  	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+	border-radius: 4px;
+  	padding: 10px 14px;
+	background-color: rgba(255, 255, 255, 0.95);
 }
