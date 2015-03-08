@@ -7,20 +7,42 @@ html, body, #map {
 	height: 100%;
 }
 
-.inactive {
-	opacity: 0.3;
-}
-
-.timeline {
-	position: absolute;
-	left: 10px;
-	bottom: 10px;		/* opera is offset by address bar ~+46px */
-	right: 10px;
-	height: 100px;
-	z-index: 2000;
-
+.gisrec {
+	display: inline-block;
   	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
 	border-radius: 4px;
-  	padding: 10px 14px;
 	background-color: rgba(255, 255, 255, 0.95);
+}
+
+.gisrec.timeline {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	right: 10px;
+	z-index: 500;
+}
+
+.gisrec > a {
+	height: 26px;
+	width: 26px;
+	line-height: 26px;
+	text-align: center;
+	display: block;
+	color: #000;
+}
+
+.gisrec > a:not(:last-child) {
+	border-bottom: 1px solid #ccc;
+}
+
+.gisrec > a:hover {
+	background-color: #ccc
+}
+
+.modal.fade:not(.in).bottom .modal-dialog {
+	transform: translate3d(0, 125%, 0);
+}
+
+.modal-dialog {
+	margin-top: 110px;
 }

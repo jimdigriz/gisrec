@@ -1,181 +1,132 @@
 var debug = $('#debug').hasClass('active');
 $('#debug').click(function ( event ){
 	$(this).button('toggle');
-
 	debug = $(this).hasClass('active');
 });
 
-var xhr = {};
-
-var map = L.map('map').fitWorld().zoomIn();
+var map = L.map('map', {
+	zoomControl: false,
+}).fitWorld().zoomIn();
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-	attribution: "Map data &copy; <a href='http://osm.org/copyright'>OpenStreetMap</a> contributors"
+	attribution: "Map data &copy; <a href='http://osm.org/copyright'>OpenStreetMap</a> contributors",
 }).addTo(map);
-var sidebar = L.control.sidebar('sidebar').addTo(map);
+L.control.scale().addTo(map);
 
-function gisrec(){
-	var tag = 0;
-	var channel = { };
+var gisControl = L.Control.extend({
+	initialize: function (options) {
+		L.Util.setOptions(this, options);
+	},
 
-	var connection = new WebSocket('ws://' + location.host);
-	connection.onopen = function(){
-		function log(m){
-			if (debug)
-				console.log('GISrec:ws: '+m);
-		}
+	onAdd: function (map) {
+		return $('<div class="gisrec"><a class="button" title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" class="button" title="channels" data-toggle="modal" data-target="#channels"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0);
+	},
+});
+map.addControl(new gisControl({ position: 'bottomright' }));
 
-		log('connected');
+var data = new vis.DataSet();
+var layers = {};
+data.on('*', function(event, properties, sender) {
+	properties.items.forEach(function(id) {
+		switch (event) {
+		case 'add':
+			var d = data.get(id);
 
-		connection.onclose = function(e){ log('disconnected: '+e); };
-		connection.onmessage = function(e){
-			log("message: "+e.data);
-
-			var message = JSON.parse(e.data);
-
-			switch (message.type){
-			case 'error':
-				break;
+			switch (sender) {
 			case 'realtime':
-				if (message.channel === null) {
-					message.channel = message.geojson.properties.id;
-					if (channel[message.channel] === undefined)
-						channel[message.channel] = '';
+				layers[id] = L.geoJson(d['geojson']).addTo(map);
+				break;
+			}
+			break;
+		case 'update':
+			var d = data.get(id);
+			var o = properties.data[i];
 
-					$('#devicelist-unreg > tbody').append('<tr id="'+message.channel+'"><th>'+message.channel+'</th><td id="add"><i class="fa fa-plus"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
-				}
+			switch (sender) {
+			case 'realtime':
+				layers[id].clearLayers();
+				layers[id].addData(d['geojson']);
+				break;
+			}
+			break;
+		case 'remove':
+			switch (sender) {
+			default:
+				map.removeLayer(layers[id]);
+				delete layers[id];
+			}
+			break;
+		}
+	});
+});
 
-				if (channel[message.channel] === undefined) {
-					connection.send(JSON.stringify({tag: tag++, type: 'error', text: "unsolicited realtime message for channel '"+message.channel+"', leaving"}));
-					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: message.channel}));
+var timeline = new vis.Timeline($('#timeline').get(0), data);
+
+var tag = 0;
+var channel = { };
+var connection = new WebSocket('ws://' + location.host);
+connection.onopen = function(){
+	function log(m, force){
+		if (force || debug)
+			console.log('GISrec:ws: '+m);
+	}
+
+	function send(m){
+		m['tag'] = tag++;
+		connection.send(JSON.stringify(m));
+		return m['tag'];
+	}
+
+	log('connected');
+
+	connection.onclose = function(e){
+		log('disconnected: '+e);
+	};
+	connection.onmessage = function(e){
+		log("message: "+e.data);
+
+		var message = JSON.parse(e.data);
+
+		switch (message.type){
+		case 'error':
+			log("error: "+e.data, true);
+			break;
+		case 'realtime':
+			if (channel[message.channel] === undefined) {
+				if (channel[''] === undefined) {
+					log("realtime on non-joined channel '"+message.channel+"', leaving");
+					send({ type: 'error', text: "unsolicited realtime message for channel '"+message.channel+"', leaving" });
+					send({ type: 'prune', channel: [ message.channel ] });
 					break;
 				}
-
-				if (typeof channel[message.channel] === 'object') {
-					channel[message.channel].clearLayers();
-					channel[message.channel].addData(message.geojson);
-				} else
-					channel[message.channel] = L.geoJson(message.geojson).addTo(map)
-				break;
-			}
-		};
-	
-		$('#devicelist-refresh').click(function ( event ){
-			function cleanup (){
-				$('#devicelist-refresh i').toggleClass('fa-spin');
-				delete xhr['devicelist-refresh'];
 			}
 
-			if (xhr['devicelist-refresh'] !== undefined){
-				xhr['devicelist-refresh'].abort();
-				cleanup();
-				return;
-			}
-
-			$('> i').toggleClass('fa-spin');
-
-			xhr['devicelist-refresh'] = $.ajax({
-				dataType: 'jsonp',
-				jsonp: 'callback',
-				url: '/data?callback=?',                    
-				success: function(data){
-					var p = {};
-					$('#devicelist tr[id]').map(function() { p[this.id] = 1; });
-
-					data.devices.filter(function(i) { return p[i] === undefined }).forEach(function ( id ){
-						$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
-						p[id] = 1;
-					});
-
-					Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function ( i ){
-						$('#devicelist #'+i).remove();
-						if (channel[i] !== undefined) {
-							map.removeLayer(channel[i]);
-							delete channel[i];
-							connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
-						}
-					});
-					cleanup();
-				},
-				error: function(data){
-					cleanup();
-				}
-			});
-		});
-
-		$('#devicelist-plus').click(function ( event ){
-			$('#devicelist-plus').toggleClass('inactive');
-			$('#devicelist-unreg-section').toggle();
-
-			if ($('#devicelist-plus').hasClass('inactive')) {
-				connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: null}));
-				$('#devicelist-unreg tr[id]').map(function() {
-					map.removeLayer(channel[this.id]);
-					delete channel[this.id];
-					$(this).remove();
-				});
-			} else {
-				connection.send(JSON.stringify({tag: tag++, type: 'join', channel: null}));
-			}
-		});
-
-		$('#devicelist').click(function ( event ){
-			var i = $(event.target).closest('tr').attr('id');
-			var a = $(event.target).closest('td').attr('id');
-
-			switch (a) {
-			case "location":
-				var e = $('#devicelist #'+i+' #'+a+' i')
-				e.toggleClass('inactive');
-
-				if (e.hasClass('inactive')) {
-					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
-					if (channel[i] !== undefined) {
-						map.removeLayer(channel[i]);
-						delete channel[i];
-					}
-				} else {
-					connection.send(JSON.stringify({tag: tag++, type: 'join', channel: i}));
-					if (channel[i] === undefined)
-						channel[i] = '';
-				}
-				break;
-			case "history":
-				$('#devicelist #'+i+' #'+a+' i').toggleClass('inactive');
-				break;
-			case "delete":
-				$('#devicelist #'+i).remove();
-				if (channel[i] !== undefined) {
-					map.removeLayer(channel[i]);
-					delete channel[i];
-					connection.send(JSON.stringify({tag: tag++, type: 'leave', channel: i}));
-				}
-				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));
-				break;
-			}
-		});
-
-		$('#devicelist-unreg').click(function ( event ){
-			var i = $(event.target).closest('tr').attr('id');
-			var a = $(event.target).closest('td').attr('id');
-
-			switch (a) {
-			case "add":
-				connection.send(JSON.stringify({tag: tag++, type: 'register', channel: i}));
-				$('#devicelist-unreg #'+i).remove();
-				$('#devicelist > tbody').append('<tr id="'+i+'"><th>'+i+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
-				$('#devicelist #'+i+' #location').click();
-				break;
-			case "delete":
-				$('#devicelist-unreg #'+i).remove();
-				if (channel[i] !== undefined) {
-					map.removeLayer(channel[i]);
-					delete channel[i];
-				}
-				connection.send(JSON.stringify({tag: tag++, type: 'unregister', channel: i}));
-				break;
-			}
-		});
-
-		$('#devicelist-refresh').click();
+			data.update({
+				id: message.channel,
+				text: message.channel,
+				start: new Date(message.geojson.properties.time * 1000),
+				geojson: message.geojson
+			}, 'realtime');
+			break;
+		default:
+			log('unknown message type: '+message.type, true);
+		}
 	};
-}
+
+	$('#unregistered').click(function ( event ){
+		$(this).button('toggle');
+
+		var type;
+		if ($(this).hasClass('active')) {
+			type = 'join'
+			channel[''] = true;
+		} else {
+			type = 'prune'
+			delete channel[''];
+		}
+
+		send({
+			type: type,
+			channel: [ null ],
+		});
+	})
+};

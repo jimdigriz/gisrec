@@ -24,18 +24,13 @@ try {
 }
 
 app.use(express.static(__dirname + '/public'));
-app.get('/data', function(req, res) {
+app.get('/devices', function(req, res) {
 	if (req.query.callback === undefined)
 		res.status(400).jsonp({ error: "missing 'callback'" });
 
 	fs.readdir('data', function(err, files) {	// TODO check err
 		files.splice(files.indexOf('.unregistered'), 1);
 		
-		res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-		res.header('Expires', '-1');
-		res.header('Pragma', 'no-cache');
-		res.header('Content-Type', 'application/javascript');
-
 		res.jsonp({ devices: files });
 	});
 });
@@ -57,11 +52,11 @@ wss.on('connection', function(ws) {
 	ws.on('close', function() {
 		log("disconnected")
 
-		Object.keys(channel).forEach(function(c) {
-			channel[c].splice(channel[c].indexOf(id), 1);
+		Object.keys(channel).forEach(function(chan) {
+			channel[chan].splice(channel[chan].indexOf(id), 1);
 
-			if (channel[c].length === 0)
-				delete channel[c];
+			if (channel[chan].length === 0)
+				delete channel[chan];
 		});
 
 		delete client[id];
@@ -73,7 +68,7 @@ wss.on('connection', function(ws) {
 		var message = JSON.parse(msg);
 
 		if (message.type === 'error') {
-			console.log("error from "+id+": "+message.text);
+			log('error: '+message.text);
 			return;
 		}
 
@@ -86,58 +81,36 @@ wss.on('connection', function(ws) {
 			return;
 		}
 
-		if (message.channel !== null && !message.channel.match(/^[a-z0-9-_]+/i)) {
-			ws.send(JSON.stringify({
-				tag:	tag,
-				type:	'error',
-				text:	'invalid channel id',
-			}));
-			return;
-		}
+		message.channel.forEach(function(chan) {
+			var c = (chan !== null) ? chan : '';
 
-		switch (message.type) {
-		case 'join':
-			var c = (message.channel !== null) ? message.channel : '';
+			switch (message.type) {
+			case 'join':
+				if (channel[c] === undefined)
+					channel[c] = [ id ];
+				else
+					channel[c].push(id);
 
-			if (channel[c] === undefined)
-				channel[c] = [ id ];
-			else
-				channel[c].push(id);
-
-			break;
-		case 'leave':
-			var c = (message.channel !== null) ? message.channel : '';
-			if (channel[c] === undefined)
 				break;
+			case 'prune':
+				if (channel[c] === undefined)
+					break;
 
-			channel[c].splice(channel[c].indexOf(id), 1);
+				channel[c].splice(channel[c].indexOf(id), 1);
 
-			if (channel[c].length === 0)
-				delete channel[c];
+				if (channel[c].length === 0)
+					delete channel[c];
 
-			break;
-		case 'register':	// TODO broadcast event
-			try {
-				fs.mkdirSync('data/'+message.channel);
-				var src = 'data/.unregistered/'+message.channel+'.json';
-				var ts = new Date(JSON.parse(fs.readFileSync(src)).properties.time * 1000);
-				fs.renameSync(src, 'data/'+message.channel+'/'+ts.toISOString()+'.json');
-			} catch (e) { log(e) }
-			break;
-		case 'unregister':	// TODO broadcast event
-			try {
-				rimraf.sync('data/'+message.channel);
-				fs.unlinkSync('data/.unregistered/'+message.channel+'.json');
-			} catch (e) { log(e) }
-			break;
-		default:
-			ws.send(JSON.stringify({
-				tag:	tag,
-				type:	'error',
-				text:	"unknown command '"+message.type+"'",
-			}));
-			break;
-		}
+				break;
+			default:
+				ws.send(JSON.stringify({
+					tag:	tag,
+					type:	'error',
+					text:	"unknown command '"+message.type+"'",
+				}));
+				break;
+			}
+		});
 	});
 });
 
@@ -256,50 +229,53 @@ var gis = net.createServer(function(sock) {
 		var g = toGeoJSON(point, properties);
 
 		fs.stat('data/'+properties.id, function(err, stat) {
-			var chan = (err === null) ? properties.id : '';
-			var name = (err === null)
-				? properties.id+'/'+ts.toISOString()
-				: '.unregistered/'+properties.id;
+			var channels = [ properties.id ];
+			if (err !== null)
+					channels.push('');
 
 			function cb( err ){
 				if (err)
 					log('unable to save data: '+err);
 
-				if (channel[chan] === undefined)
-					return;
+				channels.forEach(function(chan) {
+					if (channel[chan] === undefined)
+						return;
 
-				channel[chan].forEach(function(i) {
-					log('realtime to client '+i);
+					channel[chan].forEach(function(i) {
+						log('realtime to client '+i);
 
-					client[i].send(JSON.stringify({
-						tag:		null,
-						type:		'realtime',
-						channel:	(chan !== '') ? properties.id : null,
-						geojson:	g,
-					}));
+						client[i].send(JSON.stringify({
+							tag:		null,
+							type:		'realtime',
+							channel:	properties.id,
+							geojson:	g,
+						}));
+					});
 				});
 			};
 
-			// TODO temp file
-			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb);
+			var name = (err === null)
+				? properties.id+'/'+ts.toISOString()
+				: '.unregistered/'+properties.id;
+			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb);	// TODO temp file
 		}.bind(g));
 
 		return;
 	}
-
-	function GPRMC2Degrees(value, direction) {
-		// http://www.mapwindow.org/phorum/read.php?3,16271
-		var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
-
-		if (direction === 'S' || direction === 'W')
-			d *= -1;
-
-		// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
-		return parseFloat(d.toFixed(5));
-	}
 });
 
 gis.listen(process.env.PORT_GIS || 27271, '::');
+
+function GPRMC2Degrees(value, direction) {
+	// http://www.mapwindow.org/phorum/read.php?3,16271
+	var d = ((value/100) | 0) + (value - (((value/100) | 0) * 100)) / 60;
+
+	if (direction === 'S' || direction === 'W')
+		d *= -1;
+
+	// http://en.wikipedia.org/wiki/Decimal_degrees#Precision
+	return parseFloat(d.toFixed(5));
+}
 
 function toGeoJSON(point, prop) {
 	var geojson = {
