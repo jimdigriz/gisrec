@@ -59,7 +59,12 @@ data.on('*', function(event, properties, sender) {
 	});
 });
 
+var now = new Date();
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
+	orientation: 'top',
+	type: 'point',
+	start: new Date(now.getTime() - 10*60000),
+	end: new Date(now.getTime() + 5*60000),
 	editable: {
 		updateGroup: true,
 		remove: true,
@@ -107,6 +112,7 @@ connection.onopen = function(){
 
 			data.update({
 				id: message.channel,
+				type: 'box',
 				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
 				geojson: message.geojson
