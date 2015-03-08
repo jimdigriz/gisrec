@@ -13,15 +13,15 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 L.control.scale().addTo(map);
 
 var gisControl = L.Control.extend({
-	initialize: function (options) {
-		L.Util.setOptions(this, options);
+	options: {
+		position: 'bottomright',
 	},
 
 	onAdd: function (map) {
-		return $('<div class="gisrec"><a class="button" title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" class="button" title="channels" data-toggle="modal" data-target="#channels"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0);
+		return $('<div class="gisrec"><a class="button" title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" class="button" title="devices" data-toggle="modal" data-target="#devices"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0);
 	},
 });
-map.addControl(new gisControl({ position: 'bottomright' }));
+map.addControl(new gisControl());
 
 var data = new vis.DataSet();
 var layers = {};
