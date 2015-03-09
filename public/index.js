@@ -1,5 +1,5 @@
 var debug = $('#debug').hasClass('active');
-$('#debug').click(function ( event ){
+$('#debug').click(function(event) {
 	$(this).button('toggle');
 	debug = $(this).hasClass('active');
 });
@@ -71,6 +71,89 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	},
 });
 
+var xhr = {};
+$('#devices #refresh').click(function(event) {
+	function cleanup() {
+		$('#devices #refresh i').toggleClass('fa-spin');
+		delete xhr['devices-refresh'];
+	}
+
+	if (xhr['devicelist-refresh'] !== undefined) {
+		xhr['devices-refresh'].abort();
+		cleanup();
+		return;
+	}
+
+	$('#devices #refresh i').toggleClass('fa-spin');
+
+	xhr['devices-refresh'] = $.ajax({
+		dataType: 'jsonp',
+		jsonp: 'callback',
+		url: '/devices?callback=?',
+		success: function(data) {
+			var p = {};
+			$('#devicelist tr[id]').map(function() { p[this.id] = 1; });
+
+			var q = {};
+			$('#unregdlist tr[id]').map(function() { q[this.id] = 1; });
+
+			data.devices.filter(function(i) { return p[i] === undefined && q[i] == undefined}).forEach(function(id) {
+				$('#devicelist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td id="location"><a class="button inactive" href="#"><i class="fa fa-location-arrow"></i></a></td><td id="history"><a class="button inactive" href="#"><i class="fa fa-history"></i></a></td><td id="hide"><a class="button inactive" href="#"><i class="fa fa-eye"></i></a></td></td><td id="trash"><a class="button" href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				p[id] = 1;
+			});
+
+			Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function(i) {
+				$('#devicelist #'+i).remove();
+				if (channel[i] !== undefined)
+					data.remove(id);
+			});
+
+			if (!$('#unregistered').hasClass('active')) {
+				cleanup();
+				return;
+			}
+
+			xhr['devices-refresh'] = $.ajax({
+				dataType: 'jsonp',
+				jsonp: 'callback',
+				url: '/channels?callback=?',
+				success: function(data) {
+					data.channels.filter(function(i) { return p[i] === undefined && q[i] == undefined}).forEach(function(id) {
+						$('#unregdlist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td id="location"><a class="button inactive" href="#"><i class="fa fa-location-arrow"></i></a></td><td id="history"><a class="button inactive" href="#"><i class="fa fa-history"></i></a></td><td id="hide"><a class="button inactive" href="#"><i class="fa fa-eye"></i></a></td></td><td id="trash"><a class="button" href="#"><i class="fa fa-trash"></i></a></td></tr>');
+						q[id] = 1;
+					});
+
+					Object.keys(q).filter(function(i) { return data.channels.indexOf(i) === -1 }).forEach(function(i) {
+						$('#unregdlist #'+i).remove();
+						if (channel[i] !== undefined)
+							data.remove(id);
+					});
+
+					cleanup();
+				},
+				error: function(data) {
+					cleanup();
+				}
+			});
+		},
+		error: function(data) {
+			cleanup();
+		}
+	});
+});
+$('#devices #refresh').click();
+
+
+$('#devicelist').click(function(event){
+	var i = $(event.target).closest('tr').attr('id');
+
+	switch ($(event.target).closest('td').attr('id')) {
+	case 'view':
+		//$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
+		break;
+	}
+});
+
 var tag = 0;
 var channel = { };
 var connection = new WebSocket('ws://' + location.host);
@@ -128,9 +211,11 @@ connection.onopen = function(){
 
 		var type;
 		if ($(this).hasClass('active')) {
+			$('#unregdtable').show();
 			type = 'join'
 			channel[''] = true;
 		} else {
+			$('#unregdtable').hide();
 			type = 'prune'
 			delete channel[''];
 		}
@@ -139,5 +224,5 @@ connection.onopen = function(){
 			type: type,
 			channel: [ null ],
 		});
-	})
+	});
 };

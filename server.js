@@ -15,12 +15,11 @@ var client = {};
 var channel = {};
 
 try {
-	fs.statSync('data/.unregistered')
+	fs.statSync('data')
 } catch(e) {
 	try {
 		fs.mkdirSync('data');
 	} catch (e) { }
-	fs.mkdirSync('data/.unregistered');
 }
 
 app.use(express.static(__dirname + '/public'));
@@ -28,10 +27,16 @@ app.get('/devices', function(req, res) {
 	if (req.query.callback === undefined)
 		res.status(400).jsonp({ error: "missing 'callback'" });
 
-	fs.readdir('data', function(err, files) {	// TODO check err
-		files.splice(files.indexOf('.unregistered'), 1);
-		
-		res.jsonp({ devices: files });
+	fs.readdir('data', function(err, devices) {	// TODO check err and 'valid' channel names
+		res.jsonp({ devices: devices.filter(function(d) { return fs.statSync('data/'+d).isDirectory() }) });
+	});
+});
+app.get('/channels', function(req, res) {
+	if (req.query.callback === undefined)
+		res.status(400).jsonp({ error: "missing 'callback'" });
+
+	fs.readdir('data', function(err, channels) {	// TODO check err
+		res.jsonp({ channels: channels.map(function(c) { return c.replace(/\.json$/, '') }) });
 	});
 });
 
@@ -254,9 +259,9 @@ var gis = net.createServer(function(sock) {
 				});
 			};
 
-			var name = (err === null)
-				? properties.id+'/'+ts.toISOString()
-				: '.unregistered/'+properties.id;
+			var name = properties.id;
+			if (err === null)
+				name = name.concat('/'+ts.toISOString());
 			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb);	// TODO temp file
 		}.bind(g));
 
