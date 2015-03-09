@@ -35,8 +35,13 @@ app.get('/channels', function(req, res) {
 	if (req.query.callback === undefined)
 		res.status(400).jsonp({ error: "missing 'callback'" });
 
-	fs.readdir('data', function(err, channels) {	// TODO check err
-		res.jsonp({ channels: channels.map(function(c) { return c.replace(/\.json$/, '') }) });
+	fs.readdir('data', function(err, channels) {	// TODO check err and 'valid' chanel names
+		res.jsonp({ channels: channels.filter(function(c) {
+			if (fs.statSync('data/'+c).isFile())
+				return (/\.json$/.test(c)) ? true : false
+			else
+				return true;
+		}).map(function(c) { return c.replace(/\.json$/, '') }) });
 	});
 });
 
