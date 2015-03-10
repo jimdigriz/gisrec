@@ -69,7 +69,6 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 		updateGroup: true,
 		remove: true,
 	},
-	minHeight: '85px',	// stops 0.5px bouncing
 });
 
 var xhr = {};
@@ -175,7 +174,7 @@ connection.onopen = function(){
 			}
 
 			if (!$('#channellist').find('#'+message.channel).length)
-				$('#channellist > tbody').append('<tr id="'+message.channel+'" class="fa-lg"><th style="width: 100%;">'+message.channel+'</th><td class="gisrec inactive" id="plus"><a href="#"><i class="fa fa-plus"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				$('#channellist > tbody').append('<tr id="'+message.channel+'" class="fa-lg"><th style="width: 100%;">'+message.channel+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="plus"><a href="#"><i class="fa fa-plus"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
 			break;
 		default:
 			log('unknown message type: '+message.type, true);
@@ -189,6 +188,21 @@ connection.onopen = function(){
 		switch (a.attr('id')) {
 		case 'location-arrow':
 			a.toggleClass('inactive');
+
+			var type;
+			if (a.hasClass('inactive')) {
+				type = 'prune';
+				delete channel[i];
+				data.remove(id);
+			} else {
+				type = 'join';
+				channel[i] = true;
+			}
+
+			send({
+				type: type,
+				channel: [ i ],
+			});
 			break;
 		case 'history':
 			a.toggleClass('inactive');
