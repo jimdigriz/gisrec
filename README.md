@@ -7,7 +7,7 @@
 ## Issues
 
  * for [historic playback](https://github.com/hallahan/LeafletPlayback)
- * use [chokidar](https://github.com/paulmillr/chokidar) on server to deal with notifications of updates/add'ing
+ * remove 'inactive' class, figure out how to make do with just 'active'
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * basic configuration
   * filter unsolicited requests

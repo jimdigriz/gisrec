@@ -18,7 +18,7 @@ var gisControl = L.Control.extend({
 	},
 
 	onAdd: function (map) {
-		return $('<div class="gisrec"><a class="button" title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" class="button" title="devices" data-toggle="modal" data-target="#devices"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0);
+		return $('<div class="leaflet-bar leaflet-control"><a title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" title="channels" data-toggle="modal" data-target="#channels"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0);
 	},
 });
 map.addControl(new gisControl());
@@ -69,90 +69,56 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 		updateGroup: true,
 		remove: true,
 	},
+	minHeight: '85px',	// stops 0.5px bouncing
 });
 
 var xhr = {};
-$('#devices #refresh').click(function(event) {
+$('#channels #refresh').click(function(event) {
 	function cleanup() {
-		$('#devices #refresh i').toggleClass('fa-spin');
-		delete xhr['devices-refresh'];
+		$('#channellist #refresh i').toggleClass('fa-spin');
+		delete xhr['refresh'];
 	}
 
-	if (xhr['devicelist-refresh'] !== undefined) {
-		xhr['devices-refresh'].abort();
+	if (xhr['refresh'] !== undefined) {
+		xhr['refresh'].abort();
 		cleanup();
 		return;
 	}
 
-	$('#devices #refresh i').toggleClass('fa-spin');
+	$('#channellist #refresh i').toggleClass('fa-spin');
 
-	xhr['devices-refresh'] = $.ajax({
+	xhr['refresh'] = $.ajax({
 		dataType: 'jsonp',
 		jsonp: 'callback',
-		url: '/devices?callback=?',
+		url: '/channel?callback=?',
 		success: function(data) {
 			var p = {};
-			$('#devicelist tr[id]').map(function() { p[this.id] = 1; });
+			$('#channellist tr[id]').map(function() { p[this.id] = 1; });
 
-			var q = {};
-			$('#unregdlist tr[id]').map(function() { q[this.id] = 1; });
+			Object.keys(data.channels).filter(function(i) { return p[i] === undefined }).forEach(function(id) {
+				if (!data.channels[id].registered && !$('#channels #unregistered').hasClass('active'))
+					return;
 
-			data.devices.filter(function(i) { return p[i] === undefined && q[i] == undefined}).forEach(function(id) {
-				$('#devicelist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td id="location"><a class="button inactive" href="#"><i class="fa fa-location-arrow"></i></a></td><td id="history"><a class="button inactive" href="#"><i class="fa fa-history"></i></a></td><td id="hide"><a class="button inactive" href="#"><i class="fa fa-eye"></i></a></td></td><td id="trash"><a class="button" href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				var type = (data.channels[id].registered) ? 'location-arrow' : 'plus';
+
+				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
 				p[id] = 1;
 			});
 
-			Object.keys(p).filter(function(i) { return data.devices.indexOf(i) === -1 }).forEach(function(i) {
-				$('#devicelist #'+i).remove();
-				if (channel[i] !== undefined)
+			Object.keys(p).filter(function(id) { return data.channels[id] === undefined }).forEach(function(id) {
+				$('#devicelist #'+id).remove();
+				if (channel[id] !== undefined)
 					data.remove(id);
 			});
 
-			if (!$('#unregistered').hasClass('active')) {
-				cleanup();
-				return;
-			}
-
-			xhr['devices-refresh'] = $.ajax({
-				dataType: 'jsonp',
-				jsonp: 'callback',
-				url: '/channels?callback=?',
-				success: function(data) {
-					data.channels.filter(function(i) { return p[i] === undefined && q[i] == undefined}).forEach(function(id) {
-						$('#unregdlist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td id="location"><a class="button inactive" href="#"><i class="fa fa-location-arrow"></i></a></td><td id="history"><a class="button inactive" href="#"><i class="fa fa-history"></i></a></td><td id="hide"><a class="button inactive" href="#"><i class="fa fa-eye"></i></a></td></td><td id="trash"><a class="button" href="#"><i class="fa fa-trash"></i></a></td></tr>');
-						q[id] = 1;
-					});
-
-					Object.keys(q).filter(function(i) { return data.channels.indexOf(i) === -1 }).forEach(function(i) {
-						$('#unregdlist #'+i).remove();
-						if (channel[i] !== undefined)
-							data.remove(id);
-					});
-
-					cleanup();
-				},
-				error: function(data) {
-					cleanup();
-				}
-			});
+			cleanup();
 		},
 		error: function(data) {
 			cleanup();
 		}
 	});
 });
-$('#devices #refresh').click();
-
-
-$('#devicelist').click(function(event){
-	var i = $(event.target).closest('tr').attr('id');
-
-	switch ($(event.target).closest('td').attr('id')) {
-	case 'view':
-		//$('#devicelist > tbody').append('<tr id="'+id+'"><th>'+id+'</th><td id="location"><i class="fa fa-location-arrow inactive"></i></td><td id="history"><i class="fa fa-history inactive"></i></td><td id="delete"><i class="fa fa-trash"></i></td></tr>');
-		break;
-	}
-});
+$('#channels #refresh').click();
 
 var tag = 0;
 var channel = { };
@@ -184,13 +150,11 @@ connection.onopen = function(){
 			log("error: "+e.data, true);
 			break;
 		case 'realtime':
-			if (channel[message.channel] === undefined) {
-				if (channel[''] === undefined) {
-					log("realtime on non-joined channel '"+message.channel+"', leaving");
-					send({ type: 'error', text: "unsolicited realtime message for channel '"+message.channel+"', leaving" });
-					send({ type: 'prune', channel: [ message.channel ] });
-					break;
-				}
+			if (channel[message.channel] === undefined) {	
+				log("realtime on non-joined channel '"+message.channel+"', leaving");
+				send({ type: 'error', text: "unsolicited realtime message for channel '"+message.channel+"', leaving" });
+				send({ type: 'prune', channel: [ message.channel ] });
+				break;
 			}
 
 			data.update({
@@ -201,27 +165,46 @@ connection.onopen = function(){
 				geojson: message.geojson
 			}, 'realtime');
 			break;
+		case 'channel':
+			if (!$('#channels #unregistered').hasClass('active')) {
+				log("channel when not-requested, leaving");
+				send({ type: 'error', text: "unsolicited channel message, leaving" });
+				send({ type: 'prune', channel: [ null ] });
+
+				break;
+			}
+
+			if (!$('#channellist').find('#'+message.channel).length)
+				$('#channellist > tbody').append('<tr id="'+message.channel+'" class="fa-lg"><th style="width: 100%;">'+message.channel+'</th><td class="gisrec inactive" id="plus"><a href="#"><i class="fa fa-plus"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+			break;
 		default:
 			log('unknown message type: '+message.type, true);
 		}
 	};
 
-	$('#unregistered').click(function ( event ){
+	$('#channellist').click(function(event){
+		var i = $(event.target).closest('tr').attr('id');
+		var a = $(event.target).closest('td');
+
+		switch (a.attr('id')) {
+		case 'location-arrow':
+			a.toggleClass('inactive');
+			break;
+		case 'history':
+			a.toggleClass('inactive');
+			break;
+		case 'plus':
+			break;
+		case 'delete':
+			break;
+		}
+	});
+
+	$('#channels #unregistered').click(function(event) {
 		$(this).button('toggle');
 
-		var type;
-		if ($(this).hasClass('active')) {
-			$('#unregdtable').show();
-			type = 'join'
-			channel[''] = true;
-		} else {
-			$('#unregdtable').hide();
-			type = 'prune'
-			delete channel[''];
-		}
-
 		send({
-			type: type,
+			type: $(this).hasClass('active') ? 'join' : 'prune',
 			channel: [ null ],
 		});
 	});

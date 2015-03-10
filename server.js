@@ -7,7 +7,8 @@ const WebSocketServer = require('ws').Server
 	, net = require('net')
 	, es = require('event-stream')
 	, fs = require('fs')
-	, rimraf = require('rimraf');
+	, rimraf = require('rimraf')
+	, url = require ('url');
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444;
 
@@ -23,26 +24,46 @@ try {
 }
 
 app.use(express.static(__dirname + '/public'));
-app.get('/devices', function(req, res) {
+app.get('/channel', function(req, res) {
 	if (req.query.callback === undefined)
 		res.status(400).jsonp({ error: "missing 'callback'" });
 
-	fs.readdir('data', function(err, devices) {	// TODO check err and 'valid' channel names
-		res.jsonp({ devices: devices.filter(function(d) { return fs.statSync('data/'+d).isDirectory() }) });
+	fs.readdir('data', function(err, files) {	// TODO check err and 'valid' chanel names
+		var channels = { }
+		files.map(function (c) {
+			if (fs.statSync('data/'+c).isFile() && /\.json$/.test(c))
+				channels[c.replace(/\.json$/, '')] = { registered: false };
+			else if (fs.statSync('data/'+c).isDirectory())
+				channels[c] = { registered: true };
+		});
+		res.jsonp({ channels: channels });
 	});
 });
-app.get('/channels', function(req, res) {
+app.all('/channel/', function(req, res) {
 	if (req.query.callback === undefined)
 		res.status(400).jsonp({ error: "missing 'callback'" });
 
-	fs.readdir('data', function(err, channels) {	// TODO check err and 'valid' chanel names
-		res.jsonp({ channels: channels.filter(function(c) {
-			if (fs.statSync('data/'+c).isFile())
-				return (/\.json$/.test(c)) ? true : false
-			else
-				return true;
-		}).map(function(c) { return c.replace(/\.json$/, '') }) });
-	});
+	var c = url.parse(req.url).pathname.replace(/^\/channel\//, '');
+
+	switch (req.method) {
+	case 'GET':
+		if (fs.statSync('data/'+c).isDirectory()) {
+			fs.readdir('data', function(err, files) {	// TODO check err
+				res.sendfile('data/'+files.sort().shift());
+			});
+		} else if (fs.statSync('data/'+c+'.json').isFile())
+			res.sendfile('data/'+c+'.json');
+		else
+			res.status(404);
+		
+		break;
+	case 'PUT':
+		break;
+	case 'DELETE':
+		break;
+	default:
+		res.status(405);
+	}
 });
 
 var iid = 0;
@@ -239,28 +260,33 @@ var gis = net.createServer(function(sock) {
 		var g = toGeoJSON(point, properties);
 
 		fs.stat('data/'+properties.id, function(err, stat) {
-			var channels = [ properties.id ];
-			if (err !== null)
-					channels.push('');
+			if (err !== null && channel[''] !== undefined)
+				channel[''].forEach(function(i) {
+					log('channel to client '+i);
 
-			function cb( err ){
+					client[i].send(JSON.stringify({
+						tag:		null,
+						type:		'channel',
+						channel:	properties.id,
+					}));
+				});
+
+			function cb(err) {
 				if (err)
 					log('unable to save data: '+err);
 
-				channels.forEach(function(chan) {
-					if (channel[chan] === undefined)
-						return;
+				if (channel[properties.id] === undefined)
+					return;
 
-					channel[chan].forEach(function(i) {
-						log('realtime to client '+i);
+				channel[properties.id].forEach(function(i) {
+					log('realtime to client '+i);
 
-						client[i].send(JSON.stringify({
-							tag:		null,
-							type:		'realtime',
-							channel:	properties.id,
-							geojson:	g,
-						}));
-					});
+					client[i].send(JSON.stringify({
+						tag:		null,
+						type:		'realtime',
+						channel:	properties.id,
+						geojson:	g,
+					}));
 				});
 			};
 
