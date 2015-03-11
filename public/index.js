@@ -31,29 +31,18 @@ data.on('*', function(event, properties, sender) {
 		case 'add':
 			var d = data.get(id);
 
-			switch (sender) {
-			case 'realtime':
-				layers[id] = L.geoJson(d['geojson']).addTo(map);
-				break;
-			}
+			layers[id] = L.geoJson(d['geojson']).addTo(map);
 			break;
 		case 'update':
 			var d = data.get(id);
 			var o = properties.data[id];
 
-			switch (sender) {
-			case 'realtime':
-				layers[id].clearLayers();
-				layers[id].addData(d['geojson']);
-				break;
-			}
+			layers[id].clearLayers();
+			layers[id].addData(d['geojson']);
 			break;
 		case 'remove':
-			switch (sender) {
-			default:
-				map.removeLayer(layers[id]);
-				delete layers[id];
-			}
+			map.removeLayer(layers[id]);
+			delete layers[id];
 			break;
 		}
 	});
@@ -91,6 +80,8 @@ $('#channels #refresh').click(function(event) {
 		jsonp: 'callback',
 		url: '/channel?callback=?',
 		success: function(data) {
+			cleanup();
+
 			var p = {};
 			$('#channellist tr[id]').map(function() { p[this.id] = 1; });
 
@@ -98,9 +89,9 @@ $('#channels #refresh').click(function(event) {
 				if (!data.channels[id].registered && !$('#channels #unregistered').hasClass('active'))
 					return;
 
-				var type = (data.channels[id].registered) ? 'location-arrow' : 'plus';
+				var type = (data.channels[id].registered) ? 'history' : 'plus';
 
-				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
 				p[id] = 1;
 			});
 
@@ -109,15 +100,28 @@ $('#channels #refresh').click(function(event) {
 				if (channel[id] !== undefined)
 					data.remove(id);
 			});
-
-			cleanup();
 		},
-		error: function(data) {
+		error: function(error) {
 			cleanup();
 		}
 	});
 });
 $('#channels #refresh').click();
+
+function addRealtime(channel, geojson) {
+	var o = data.get(channel);
+
+	if (o !== null && o.geojson.properties.time > geojson.properties.time)
+		return;
+
+	data.update({
+		id: channel,
+		type: 'box',
+		content: channel,
+		start: new Date(geojson.properties.time * 1000),
+		geojson: geojson
+	});
+}
 
 var tag = 0;
 var channel = { };
@@ -156,13 +160,7 @@ connection.onopen = function(){
 				break;
 			}
 
-			data.update({
-				id: message.channel,
-				type: 'box',
-				content: message.channel,
-				start: new Date(message.geojson.properties.time * 1000),
-				geojson: message.geojson
-			}, 'realtime');
+			addRealtime(message.channel, message.geojson);
 			break;
 		case 'channel':
 			if (!$('#channels #unregistered').hasClass('active')) {
@@ -193,10 +191,26 @@ connection.onopen = function(){
 			if (a.hasClass('inactive')) {
 				type = 'prune';
 				delete channel[i];
-				data.remove(id);
+
+				if (xhr['channel '+i] !== undefined)
+					xhr['channel '+i].abort();
+				data.remove(i);
 			} else {
 				type = 'join';
 				channel[i] = true;
+
+				xhr['channel '+i] = $.ajax({
+					dataType: 'jsonp',
+					jsonp: 'callback',
+					url: '/channel/'+i+'?callback=?',
+					success: function(geojson) {
+						delete xhr['channel '+i];
+						addRealtime(i, geojson);
+					},
+					error: function(error) {
+						delete xhr['channel '+i];
+					}
+				});
 			}
 
 			send({

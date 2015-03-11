@@ -26,7 +26,7 @@ try {
 app.use(express.static(__dirname + '/public'));
 app.get('/channel', function(req, res) {
 	if (req.query.callback === undefined)
-		res.status(400).jsonp({ error: "missing 'callback'" });
+		res.status(400).jsonp({ text: "missing 'callback'" });
 
 	fs.readdir('data', function(err, files) {	// TODO check err and 'valid' chanel names
 		var channels = { }
@@ -39,23 +39,34 @@ app.get('/channel', function(req, res) {
 		res.jsonp({ channels: channels });
 	});
 });
-app.all('/channel/', function(req, res) {
+app.all('/channel/*', function(req, res) {
 	if (req.query.callback === undefined)
-		res.status(400).jsonp({ error: "missing 'callback'" });
+		res.status(400).jsonp({ text: "missing 'callback'" });
 
-	var c = url.parse(req.url).pathname.replace(/^\/channel\//, '');
+	var chan = url.parse(req.url).pathname.replace(/^\/channel\//, '');
 
 	switch (req.method) {
 	case 'GET':
-		if (fs.statSync('data/'+c).isDirectory()) {
-			fs.readdir('data', function(err, files) {	// TODO check err
-				res.sendfile('data/'+files.sort().shift());
+		fs.readdir('data', function(err, channels) {	// TODO check err
+			var s = channels.filter(function(c) {
+				if (c === chan &&  fs.statSync('data/'+c).isDirectory()) {
+					fs.readdir('data/'+c, function(err, files) {	// TODO check err
+						if (files.length)
+							return c+'/'+files.sort()[0];
+					});
+				} else if (c === chan+'.json' && fs.statSync('data/'+c).isFile())
+					return c
 			});
-		} else if (fs.statSync('data/'+c+'.json').isFile())
-			res.sendfile('data/'+c+'.json');
-		else
-			res.status(404);
-		
+
+			if (s.length === 0)
+				res.status(404);
+			else if (s.length === 1)
+				fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
+					res.jsonp(JSON.parse(data));
+				});
+			else
+				res.status(409).jsonp({ text: 'registered and non-registered versions exist' });
+		});
 		break;
 	case 'PUT':
 		break;
