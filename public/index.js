@@ -32,6 +32,7 @@ data.on('*', function(event, properties, sender) {
 			var d = data.get(id);
 
 			layers[id] = L.geoJson(d['geojson']).addTo(map);
+			channel[id] = true;
 			break;
 		case 'update':
 			var d = data.get(id);
@@ -43,6 +44,7 @@ data.on('*', function(event, properties, sender) {
 		case 'remove':
 			map.removeLayer(layers[id]);
 			delete layers[id];
+			delete channel[id];
 			break;
 		}
 	});
@@ -91,14 +93,13 @@ $('#channels #refresh').click(function(event) {
 
 				var type = (data.channels[id].registered) ? 'history' : 'plus';
 
-				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
 				p[id] = 1;
 			});
 
 			Object.keys(p).filter(function(id) { return data.channels[id] === undefined }).forEach(function(id) {
 				$('#devicelist #'+id).remove();
-				if (channel[id] !== undefined)
-					data.remove(id);
+				data.remove(id);
 			});
 		},
 		error: function(error) {
@@ -172,7 +173,7 @@ connection.onopen = function(){
 			}
 
 			if (!$('#channellist').find('#'+message.channel).length)
-				$('#channellist > tbody').append('<tr id="'+message.channel+'" class="fa-lg"><th style="width: 100%;">'+message.channel+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="plus"><a href="#"><i class="fa fa-plus"></i></a></td><td class="gisrec" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				$('#channellist > tbody').append('<tr id="'+message.channel+'" class="fa-lg"><th style="width: 100%;">'+message.channel+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="plus"><a href="#"><i class="fa fa-plus"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
 			break;
 		default:
 			log('unknown message type: '+message.type, true);
@@ -190,25 +191,23 @@ connection.onopen = function(){
 			var type;
 			if (a.hasClass('inactive')) {
 				type = 'prune';
-				delete channel[i];
 
-				if (xhr['channel '+i] !== undefined)
-					xhr['channel '+i].abort();
+				if (xhr['get channel '+i] !== undefined)
+					xhr['get channel '+i].abort();
 				data.remove(i);
 			} else {
 				type = 'join';
-				channel[i] = true;
 
-				xhr['channel '+i] = $.ajax({
+				xhr['get channel '+i] = $.ajax({
 					dataType: 'jsonp',
 					jsonp: 'callback',
 					url: '/channel/'+i+'?callback=?',
 					success: function(geojson) {
-						delete xhr['channel '+i];
+						delete xhr['get channel '+i];
 						addRealtime(i, geojson);
 					},
 					error: function(error) {
-						delete xhr['channel '+i];
+						delete xhr['get channel '+i];
 					}
 				});
 			}
@@ -222,8 +221,43 @@ connection.onopen = function(){
 			a.toggleClass('inactive');
 			break;
 		case 'plus':
+			if (xhr['put channel '+i] !== undefined)
+				xhr['put channel '+i].abort();
+
+			xhr['put channel '+i] = $.ajax({
+				dataType: 'jsonp',
+				jsonp: 'callback',
+				type: 'PUT',
+				url: '/channel/'+i+'?callback=?',
+				success: function(geojson) {
+					delete xhr['put channel '+i];
+					$('#channellist #'+i).remove();
+					$('#channellist > tbody').append('<tr id="'+i+'" class="fa-lg"><th style="width: 100%;">'+i+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
+				},
+				error: function(error) {
+					delete xhr['delete channel '+i];
+				}
+			});
+
 			break;
-		case 'delete':
+		case 'trash':
+			if (xhr['delete channel '+i] !== undefined)
+				xhr['delete channel '+i].abort();
+
+			xhr['delete channel '+i] = $.ajax({
+				dataType: 'jsonp',
+				jsonp: 'callback',
+				type: 'DELETE',
+				url: '/channel/'+i+'?callback=?',
+				success: function(geojson) {
+					delete xhr['delete channel '+i];
+					$('#channellist #'+i).remove();
+					data.remove(i);
+				},
+				error: function(error) {
+					delete xhr['delete channel '+i];
+				}
+			});
 			break;
 		}
 	});

@@ -15,7 +15,7 @@ const KNOTS_TO_METRES_PER_SECOND = 0.51444;
 var client = {};
 var channel = {};
 
-try {
+try {	// TODO check err
 	fs.statSync('data')
 } catch(e) {
 	try {
@@ -26,7 +26,7 @@ try {
 app.use(express.static(__dirname + '/public'));
 app.get('/channel', function(req, res) {
 	if (req.query.callback === undefined)
-		res.status(400).jsonp({ text: "missing 'callback'" });
+		return res.status(400).jsonp({ text: "missing 'callback'" });
 
 	fs.readdir('data', function(err, files) {	// TODO check err and 'valid' chanel names
 		var channels = { }
@@ -41,39 +41,63 @@ app.get('/channel', function(req, res) {
 });
 app.all('/channel/*', function(req, res) {
 	if (req.query.callback === undefined)
-		res.status(400).jsonp({ text: "missing 'callback'" });
+		return res.status(400).jsonp({ text: "missing 'callback'" });
 
 	var chan = url.parse(req.url).pathname.replace(/^\/channel\//, '');
 
+	if (!/^[0-9a-zA-Z]+$/.test(chan))
+		return res.status(400).jsonp({ text: "bad channel" });
+
+	var channels = fs.readdirSync('data');
+	var s = channels.map(function(c) {
+		if (c === chan && fs.statSync('data/'+c).isDirectory()) {
+			var files = fs.readdirSync('data/'+c);
+			if (files.length)
+				return c+'/'+files.sort()[0];
+		} else if (c === chan+'.json' && fs.statSync('data/'+c).isFile())
+			return c
+	}).filter(function(v) { return v !== undefined });
+
+	if (s.length === 0)
+		return res.sendStatus(404);
+
 	switch (req.method) {
 	case 'GET':
-		fs.readdir('data', function(err, channels) {	// TODO check err
-			var s = channels.filter(function(c) {
-				if (c === chan &&  fs.statSync('data/'+c).isDirectory()) {
-					fs.readdir('data/'+c, function(err, files) {	// TODO check err
-						if (files.length)
-							return c+'/'+files.sort()[0];
-					});
-				} else if (c === chan+'.json' && fs.statSync('data/'+c).isFile())
-					return c
+		if (s.length === 1) {
+			fs.readFile('data/'+chan+'.json', function(err, data) {	// TODO check err
+				res.jsonp(JSON.parse(data));
 			});
-
-			if (s.length === 0)
-				res.status(404);
-			else if (s.length === 1)
-				fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
-					res.jsonp(JSON.parse(data));
-				});
-			else
-				res.status(409).jsonp({ text: 'registered and non-registered versions exist' });
-		});
+		} else
+			res.status(409).jsonp({ text: 'registered and non-registered versions exist' });
 		break;
 	case 'PUT':
+		if (s.length === 1) {
+			if (fs.statSync('data/'+s[0]).isDirectory()) {
+				res.sendStatus(428);
+				break;
+			}
+
+			fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
+				var ts = new Date(JSON.parse(data).properties.time * 1000);
+				fs.mkdir('data/'+chan, function(err) {	// TODO check err
+					fs.rename('data/'+s[0], 'data/'+chan+'/'+ts.toISOString()+'.json', function(err) { // TODO check err
+						res.sendStatus(201);
+					});
+				});
+			});
+		} else
+			res.status(409).jsonp({ text: 'registered and non-registered versions exist' });
 		break;
 	case 'DELETE':
+		if (s.length === 1) {
+			rimraf('data/'+chan, function(err) {
+				res.sendStatus(204);
+			});
+		} else
+			res.status(409).jsonp({ text: 'registered and non-registered versions exist' });
 		break;
 	default:
-		res.status(405);
+		res.sendStatus(405);
 	}
 });
 
