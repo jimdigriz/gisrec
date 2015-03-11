@@ -229,7 +229,7 @@ connection.onopen = function(){
 				jsonp: 'callback',
 				type: 'PUT',
 				url: '/channel/'+i+'?callback=?',
-				success: function(geojson) {
+				success: function(data) {
 					delete xhr['put channel '+i];
 					$('#channellist #'+i).remove();
 					$('#channellist > tbody').append('<tr id="'+i+'" class="fa-lg"><th style="width: 100%;">'+i+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="history"><a href="#"><i class="fa fa-history"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>');
@@ -249,7 +249,7 @@ connection.onopen = function(){
 				jsonp: 'callback',
 				type: 'DELETE',
 				url: '/channel/'+i+'?callback=?',
-				success: function(geojson) {
+				success: function(data) {
 					delete xhr['delete channel '+i];
 					$('#channellist #'+i).remove();
 					data.remove(i);

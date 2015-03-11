@@ -64,7 +64,7 @@ app.all('/channel/*', function(req, res) {
 	switch (req.method) {
 	case 'GET':
 		if (s.length === 1) {
-			fs.readFile('data/'+chan+'.json', function(err, data) {	// TODO check err
+			fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
 				res.jsonp(JSON.parse(data));
 			});
 		} else
@@ -81,7 +81,7 @@ app.all('/channel/*', function(req, res) {
 				var ts = new Date(JSON.parse(data).properties.time * 1000);
 				fs.mkdir('data/'+chan, function(err) {	// TODO check err
 					fs.rename('data/'+s[0], 'data/'+chan+'/'+ts.toISOString()+'.json', function(err) { // TODO check err
-						res.sendStatus(201);
+						res.sendStatus(204);
 					});
 				});
 			});
