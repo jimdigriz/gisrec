@@ -6,6 +6,7 @@
 
 ## Issues
 
+ * documentation covering testing, and include some screenshots
  * for [historic playback](https://github.com/hallahan/LeafletPlayback)
  * remove 'inactive' class, figure out how to make do with just 'active'
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
