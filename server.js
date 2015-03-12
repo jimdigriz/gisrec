@@ -26,7 +26,7 @@ try {	// TODO check err
 app.use(express.static(__dirname + '/public'))
 app.get('/channel', function(req, res) {
 	if (req.query.callback === undefined)
-		return res.status(400).jsonp({ text: "missing 'callback'" })
+		return res.status(400).jsonp({ error: "missing 'callback'" })
 
 	fs.readdir('data', function(err, files) {	// TODO check err and 'valid' chanel names
 		var channels = { }
@@ -41,12 +41,12 @@ app.get('/channel', function(req, res) {
 })
 app.all('/channel/*', function(req, res) {
 	if (req.query.callback === undefined)
-		return res.status(400).jsonp({ text: "missing 'callback'" })
+		return res.status(400).jsonp({ error: "missing 'callback'" })
 
 	var chan = url.parse(req.url).pathname.replace(/^\/channel\//, '')
 
 	if (!/^[0-9a-zA-Z]+$/.test(chan))
-		return res.status(400).jsonp({ text: "bad channel" })
+		return res.status(400).jsonp({ error: "bad channel" })
 
 	var channels = fs.readdirSync('data')
 	var s = channels.map(function(c) {
@@ -68,7 +68,7 @@ app.all('/channel/*', function(req, res) {
 				res.jsonp(JSON.parse(data))
 			})
 		} else
-			res.status(409).jsonp({ text: 'registered and non-registered versions exist' })
+			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
 		break
 	case 'PUT':
 		if (s.length === 1) {
@@ -86,7 +86,7 @@ app.all('/channel/*', function(req, res) {
 				})
 			})
 		} else
-			res.status(409).jsonp({ text: 'registered and non-registered versions exist' })
+			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
 		break
 	case 'DELETE':
 		if (s.length === 1) {
@@ -94,7 +94,7 @@ app.all('/channel/*', function(req, res) {
 				res.sendStatus(204)
 			})
 		} else
-			res.status(409).jsonp({ text: 'registered and non-registered versions exist' })
+			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
 		break
 	default:
 		res.sendStatus(405)
