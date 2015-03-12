@@ -6,12 +6,9 @@
 
 ## Issues
 
- * documentation covering testing, and include some screenshots
  * for [historic playback](https://github.com/hallahan/LeafletPlayback)
  * remove 'inactive' class, figure out how to make do with just 'active'
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
- * basic configuration
-  * filter unsolicited requests
  * local storage for naming/groups, plus share back to server
  * group broadcast events (reg/unreg)
  * meta data tagging/hovers/etc
@@ -21,7 +18,6 @@
  * data storage format
   * recording coalescer
   * HTTP cache friendly
-  * record *device* location, but a device can be attached for periods
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
  * check xexun length and crc16
  * websocket reconnect
@@ -41,9 +37,54 @@
 
     sudo update-service --add $(pwd)/runit gisrec
 
-# Using
+# Usage
 
-When running, you should open your browser to [http://192.0.2.69:27270/](http://192.0.2.69:27270/).
+When running, you get to the main user interface by pointing your web browser at [http://localhost:27270/](http://localhost:27270/) to get to the user interface.  GPS data is collected over TCP to a socket on `27271/tcp`; see below for device configuration.
+
+![Screenshot of GISrec in action](screenshot.jpeg "Screenshot of GISrec in action")
+
+There main features of the interface are:
+
+ * typical [OpenStreetMap](http://www.openstreetmap.org/) interactable map
+ * scroll and zoomable timeline which is primarily used to group data points into sets.  So you can state that your tracker was attached to the cat 'Lulu for some data points', whilst for other points it was on 'Jones'
+ * two control widgets in the bottom right
+        * location arrow opens the 'channels' window
+        * the cog opens the settings page - from here you can enable some basic JavaScript console debugging
+ * the 'channels' window
+  * lists the channels (devices) that are available to tune into
+  * 'unregistered' button to subscribe to new devices you are not colelcting historic data for
+  * 'refresh' button to get any new devices; refreshing with 'unregistered' enabled will fetch a full list of unregistered devices
+  * location arrow enables reception of live GPS data, as well as fetching the latest data point
+  * history button will display all the histroy data recorded
+  * add button registers devices, so that historic data is now recorded
+  * trash button to delete the device and any historic data associated with it
+
+# Testing
+
+If running, then go to 'location' (arrow in the bottom right) and in the pop up window click on 'Unregistered'.
+
+Now from a terminal run:
+
+    echo '150301114039,+441234567891,GPRMC,224739.000,A,3817.5552,N,14125.4289,E,0.00,136.36,100315,,,A*6C,F,, imei:012345678901234,08,69.4,F:4.18V,0,140,2068,123,10,10AB,40BC' \
+    	| nc -q0 localhost 27271
+
+In the window should appear a channel with the ID '012345678901234', click on the location arrow to the right of it.  Now a marker should appear just off the coast of Japan and if you scroll the timeline at the top, you should see a point marked at 10th March 2015, around 22:47.
+
+Recordings appear in the `data` directory of the project.  If the device is 'unregistered' you get no historic data, just a single [GeoJSON formatted file](http://geojson.org/) named after the device ID '012345678901234'.  If the device is registered, then instead you will find a directory named '012345678901234' containing an ISO timestamp named file for each point.
+
+## Replaying PCAPs
+
+The following is good to capture some sample traffic:
+
+    tcpdump -n -p -w - -U '(dst host 1.2.3.4 and dst port 27271) or (src host 1.2.3.4 and src port 27271)' \
+    	| tee /tmp/dump.pcap \
+    	| tcpdump -n -r - -A
+
+Later if you want to replay it, you can run the following:
+
+    ngrep -q -W byline -I dump.pcap | grep GPRMC | nc -q0 localhost 27271
+
+# Devices
 
 ## Xexun TK201-2 (and possibly others)
 
