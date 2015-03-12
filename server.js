@@ -259,6 +259,10 @@ var gis = net.createServer(function(sock) {
 			log("'id' is not set, unable to save data");
 			return;
 		}
+		if (!/^[0-9a-zA-Z]+$/.test(properties.id)) {
+			log("'id' is not valid, unable to save data");
+			return;
+		}
 
 		var match = reGPRMC.exec(data);
 		var	time = match[1],
