@@ -37,7 +37,9 @@ You will need to be plumbed into [Debian Backports to easily install node.js](ht
 
 Now to fetch GISrec and set up its dependencies:
 
-    apt-get install -yy --no-install-recommends git nodejs
+    sudo apt-get install -yy --no-install-recommends git ca-certificates nodejs curl build-essential python
+    sudo ln -f -s /usr/bin/nodejs /usr/local/bin/node
+    curl -L -O -J https://npmjs.org/install.sh && sudo sh install.sh
     
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
