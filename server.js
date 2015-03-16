@@ -15,7 +15,7 @@ const KNOTS_TO_METRES_PER_SECOND = 0.51444
 var client = {}
 var channel = {}
 
-try {	// TODO check err
+try {
 	fs.statSync('data')
 } catch(e) {
 	try {
@@ -28,7 +28,7 @@ app.get('/channel', function(req, res) {
 	if (req.query.callback === undefined)
 		return res.status(400).jsonp({ error: "missing 'callback'" })
 
-	fs.readdir('data', function(err, files) {	// TODO check err and 'valid' chanel names
+	fs.readdir('data', function(err, files) {
 		var channels = { }
 		files.map(function (c) {
 			if (fs.statSync('data/'+c).isFile() && /\.json$/.test(c))
@@ -53,7 +53,7 @@ app.all('/channel/*', function(req, res) {
 		if (c === chan && fs.statSync('data/'+c).isDirectory()) {
 			var files = fs.readdirSync('data/'+c)
 			if (files.length)
-				return c+'/'+files.sort()[0]
+				return c+'/'+files.sort().pop()
 		} else if (c === chan+'.json' && fs.statSync('data/'+c).isFile())
 			return c
 	}).filter(function(v) { return v !== undefined })
@@ -64,9 +64,32 @@ app.all('/channel/*', function(req, res) {
 	switch (req.method) {
 	case 'GET':
 		if (s.length === 1) {
-			fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
-				res.jsonp(JSON.parse(data))
-			})
+			if (req.query.start || req.query.end) {
+				var start = (req.query.start) ? (new Date(req.query.start)).getTime() : null
+				var end = (req.query.end) ? (new Date(req.query.end)).getTime() : null
+
+				fs.readdir('data/'+chan, function(err, files) {
+					var geojson = {
+						type: 'FeatureCollection',
+						features: [],
+					}
+
+					files.sort().forEach(function(f) {
+						if (start && start > (new Date(f.replace(/\.json$/, '')).getTime()))
+							return
+						if (end && end < (new Date(f.replace(/\.json$/, '')).getTime()))
+							return
+
+						geojson.features.push(JSON.parse(fs.readFileSync('data/'+chan+'/'+f)))
+					})
+
+					res.jsonp(geojson)
+				})
+			} else {
+				fs.readFile('data/'+s[0], function(err, data) {
+					res.jsonp(JSON.parse(data))
+				})
+			}
 		} else
 			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
 		break
@@ -77,10 +100,10 @@ app.all('/channel/*', function(req, res) {
 				break
 			}
 
-			fs.readFile('data/'+s[0], function(err, data) {	// TODO check err
+			fs.readFile('data/'+s[0], function(err, data) {
 				var ts = new Date(JSON.parse(data).properties.time * 1000)
-				fs.mkdir('data/'+chan, function(err) {	// TODO check err
-					fs.rename('data/'+s[0], 'data/'+chan+'/'+ts.toISOString()+'.json', function(err) { // TODO check err
+				fs.mkdir('data/'+chan, function(err) {
+					fs.rename('data/'+s[0], 'data/'+chan+'/'+ts.toISOString()+'.json', function(err) {
 						res.sendStatus(204)
 					})
 				})
@@ -332,7 +355,7 @@ var gis = net.createServer(function(sock) {
 			var name = properties.id
 			if (err === null)
 				name = name.concat('/'+ts.toISOString())
-			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb)	// TODO temp file
+			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb)
 		}.bind(g))
 
 		return
