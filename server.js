@@ -8,7 +8,8 @@ const WebSocketServer = require('ws').Server
 	, es = require('event-stream')
 	, fs = require('fs')
 	, rimraf = require('rimraf')
-	, url = require ('url')
+	, url = require('url')
+	, compression = require('compression')
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444
 
@@ -22,6 +23,8 @@ try {
 		fs.mkdirSync('data')
 	} catch (e) { }
 }
+
+app.use(compression());
 
 app.use(express.static(__dirname + '/public'))
 app.get('/channel', function(req, res) {
