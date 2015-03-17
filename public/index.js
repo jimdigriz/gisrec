@@ -51,15 +51,23 @@ data.on('*', function(event, properties, sender) {
 })
 
 var now = new Date()
+var timelineStart = new Date(now.getTime() - 10*60000)
+	, timelineEnd = new Date(now.getTime() + 5*60000)
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	orientation: 'top',
 	type: 'point',
-	start: new Date(now.getTime() - 10*60000),
-	end: new Date(now.getTime() + 5*60000),
+	start: timelineStart,
+	end: timelineEnd,
 	editable: {
 		updateGroup: true,
 		remove: true,
 	},
+})
+
+timeline.on('rangechanged', function(props) {
+	timelineStart = props.start
+	timelineEnd = props.end
+	updateHistory();
 })
 
 var xhr = {}
@@ -121,6 +129,24 @@ function addRealtime(channel, geojson) {
 		content: channel,
 		start: new Date(geojson.properties.time * 1000),
 		geojson: geojson
+	})
+}
+
+function updateHistory() {
+	$('#channellist tr[id]:has(#history:not(.inactive))').map(function() {
+		var id = this.id
+
+		xhr['get history '+id] = $.ajax({
+			dataType: 'jsonp',
+			jsonp: 'callback',
+			url: '/channel/'+id+'?callback=?&start=' + timelineStart.getTime() + '&end=' + timelineEnd.getTime(),
+			success: function(geojson) {
+				delete xhr['get channel '+id]
+			},
+			error: function(error) {
+				delete xhr['get channel '+id]
+			}
+		})
 	})
 }
 
@@ -219,6 +245,7 @@ connection.onopen = function(){
 			break
 		case 'history':
 			a.toggleClass('inactive')
+			updateHistory()
 			break
 		case 'plus':
 			if (xhr['put channel '+i] !== undefined)
