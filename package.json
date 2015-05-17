@@ -4,11 +4,16 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "ws": "~0.7.1",
-    "express": "~4.12.0",
-    "event-stream": "~3.2.2",
-    "rimraf": "~2.3.1",
+    "bootstrap": "^3.3.4",
     "compression": "~1.4.3",
-    "es6-promise": "~2.0.1"
+    "es6-promise": "~2.0.1",
+    "event-stream": "~3.2.2",
+    "express": "~4.12.0",
+    "font-awesome": "^4.3.0",
+    "jquery": "^2.1.4",
+    "leaflet": "^0.7.3",
+    "rimraf": "~2.3.1",
+    "vis": "^3.12.0",
+    "ws": "~0.7.1"
   }
 }
