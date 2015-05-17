@@ -98,7 +98,7 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 		var end = (req.query.end) ? (new Date(req.query.end)).getTime() : null
 
 		fs.readdir(__dirname+'/data/'+chan, function(err, files) {
-			var times = []
+			var matches = []
 
 			files.sort().forEach(function(f) {
 				var t = (new Date(f.replace(/\.json$/, '')).getTime())
@@ -106,10 +106,10 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 					return
 				if (end && end < t)
 					return
-				times.push(t)
+				matches.push(f.replace(/\.json$/, ''))
 			})
 
-			res.jsonp({ times: times })
+			res.jsonp({ files: matches })
 		})
 	}
 
