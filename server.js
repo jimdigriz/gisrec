@@ -14,9 +14,6 @@ const WebSocketServer = require('ws').Server
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444
 
-var client = {}
-var channel = {}
-
 try {
 	fs.statSync(__dirname+'/data')
 } catch(e) {
@@ -129,10 +126,14 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 	}
 })
 
-var iid = 0
+var	client = {},
+	iid = 0
 wss.on('connection', function(ws) {
 	var id = iid++
-	client[id] = ws
+	client[id] = {
+		ws: ws,
+		subs: []
+	}
 
 	var	remoteAddress = ws._socket.remoteAddress,
 		remotePort = ws._socket.remotePort
@@ -145,14 +146,6 @@ wss.on('connection', function(ws) {
 
 	ws.on('close', function() {
 		log('disconnected')
-
-		Object.keys(channel).forEach(function(chan) {
-			channel[chan].splice(channel[chan].indexOf(id), 1)
-
-			if (channel[chan].length === 0)
-				delete channel[chan]
-		})
-
 		delete client[id]
 	})
 
@@ -175,36 +168,31 @@ wss.on('connection', function(ws) {
 			return
 		}
 
-		message.channel.forEach(function(chan) {
-			var c = (chan !== null) ? chan : ''
-
-			switch (message.type) {
-			case 'join':
-				if (channel[c] === undefined)
-					channel[c] = [ id ]
-				else
-					channel[c].push(id)
-
-				break
-			case 'prune':
-				if (channel[c] === undefined)
-					break
-
-				channel[c].splice(channel[c].indexOf(id), 1)
-
-				if (channel[c].length === 0)
-					delete channel[c]
-
-				break
-			default:
-				ws.send(JSON.stringify({
-					tag:	tag,
-					type:	'error',
-					text:	"unknown command '"+message.type+"'",
-				}))
-				break
+		switch (message.type) {
+		case 'subscribe':
+			var rules = []
+			try {
+				message.rules.forEach(function(re) {
+					subs.push(new RegExp(re))
+				})
+				client[id].subs = rules
 			}
-		})
+			catch (e) {
+				ws.send(JSON.stringify({
+					tag:	message.tag,
+					type:	'error',
+					text:	'invalid regex: '+e,
+				}))
+			}
+			break
+		default:
+			ws.send(JSON.stringify({
+				tag:	tag,
+				type:	'error',
+				text:	"unknown command '"+message.type+"'",
+			}))
+			break
+		}
 	})
 })
 
@@ -325,42 +313,32 @@ var gis = net.createServer(function(sock) {
 		properties.gprmc.checksum		= checksum
 
 		var g = toGeoJSON(point, properties)
-
-		fs.stat(__dirname+'/data/'+properties.id, function(err, stat) {
-			if (err !== null && channel[''] !== undefined)
-				channel[''].forEach(function(i) {
-					log('channel to client '+i)
-
-					client[i].send(JSON.stringify({
-						tag:		null,
-						type:		'channel',
-						channel:	properties.id,
-					}))
-				})
-
-			function cb(err) {
-				if (err)
-					log('unable to save data: '+err)
-
-				if (channel[properties.id] === undefined)
+		Object.keys(clients).forEach(function(id) {
+			clients[id].subs.forEach(function(re) {
+				if (!re.test(properties.id))
 					return
 
-				channel[properties.id].forEach(function(i) {
-					log('realtime to client '+i)
+				log('realtime to client '+id)
 
-					client[i].send(JSON.stringify({
-						tag:		null,
-						type:		'realtime',
-						channel:	properties.id,
-						geojson:	g,
-					}))
-				})
-			}
+				client[id].ws.send(JSON.stringify({
+					tag:		null,
+					type:		'realtime',
+					channel:	properties.id,
+					geojson:	g,
+				}))
+			})
+		})
 
+		fs.stat(__dirname+'/data/'+properties.id, function(err, stat) {
 			var name = properties.id
 			if (err === null)
 				name = name.concat('/'+ts.toISOString())
 			fs.writeFile(__dirname+'/data/'+name+'.json', JSON.stringify(g), cb)
+
+			function cb(err) {
+				if (err)
+					log('unable to save data: '+err)
+			}
 		})
 
 		return
