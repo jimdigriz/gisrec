@@ -9,7 +9,8 @@ const WebSocketServer = require('ws').Server
 	, fs = require('fs')
 	, rimraf = require('rimraf')
 	, url = require('url')
-	, compression = require('compression')
+	, compress = require('compression')
+	, Promise = require('es6-promise').Promise
 
 const KNOTS_TO_METRES_PER_SECOND = 0.51444
 
@@ -17,113 +18,108 @@ var client = {}
 var channel = {}
 
 try {
-	fs.statSync('data')
+	fs.statSync(__dirname+'/data')
 } catch(e) {
 	try {
-		fs.mkdirSync('data')
+		fs.mkdirSync(__dirname+'/data')
 	} catch (e) { }
 }
 
-app.use(compression());
+app.use(compress())
+app.use(express.static(__dirname+'/public'))
 
-app.use(express.static(__dirname + '/public'))
-app.get('/channel', function(req, res) {
-	if (req.query.callback === undefined)
-		return res.status(400).jsonp({ error: "missing 'callback'" })
+app.all('/channel/:channel?/:file?', function(req, res) {
+	var promise = channels()
 
-	fs.readdir('data', function(err, files) {
-		var channels = { }
-		files.map(function (c) {
-			if (fs.statSync('data/'+c).isFile() && /\.json$/.test(c))
-				channels[c.replace(/\.json$/, '')] = { registered: false }
-			else if (fs.statSync('data/'+c).isDirectory())
-				channels[c] = { registered: true }
-		})
-		res.jsonp({ channels: channels })
-	})
-})
-app.all('/channel/*', function(req, res) {
-	if (req.query.callback === undefined)
-		return res.status(400).jsonp({ error: "missing 'callback'" })
+	promise.then(function(channels) {
+		if (req.params.channel === undefined)
+			return res.jsonp({ channels: channels })
 
-	var chan = url.parse(req.url).pathname.replace(/^\/channel\//, '')
-
-	if (!/^[0-9a-zA-Z]+$/.test(chan))
-		return res.status(400).jsonp({ error: "bad channel" })
-
-	var channels = fs.readdirSync('data')
-	var s = channels.map(function(c) {
-		if (c === chan && fs.statSync('data/'+c).isDirectory()) {
-			var files = fs.readdirSync('data/'+c)
-			if (files.length)
-				return c+'/'+files.sort().pop()
-		} else if (c === chan+'.json' && fs.statSync('data/'+c).isFile())
-			return c
-	}).filter(function(v) { return v !== undefined })
-
-	if (s.length === 0)
-		return res.sendStatus(404)
-
-	switch (req.method) {
-	case 'GET':
-		if (s.length === 1) {
-			if (req.query.start || req.query.end) {
-				var start = (req.query.start) ? (new Date(req.query.start)).getTime() : null
-				var end = (req.query.end) ? (new Date(req.query.end)).getTime() : null
-
-				fs.readdir('data/'+chan, function(err, files) {
-					var geojson = {
-						type: 'FeatureCollection',
-						features: [],
-					}
-
-					files.sort().forEach(function(f) {
-						if (start && start > (new Date(f.replace(/\.json$/, '')).getTime()))
-							return
-						if (end && end < (new Date(f.replace(/\.json$/, '')).getTime()))
-							return
-
-						geojson.features.push(JSON.parse(fs.readFileSync('data/'+chan+'/'+f)))
+		if (channels[req.params.channel] === undefined)
+			res.status(404).jsonp({ error: 'channel does not exist' })
+		else {
+			switch (req.method) {
+			case 'GET':
+				if (req.params.file !== undefined) {
+					var opt = { root: __dirname+'/data' }
+					res.sendFile(req.params.channel+'/'+req.params.file, opt, function(err){
+						if (err)
+							res.status(err.status).jsonp({ error: err.code })
 					})
-
-					res.jsonp(geojson)
-				})
-			} else {
-				fs.readFile('data/'+s[0], function(err, data) {
-					res.jsonp(JSON.parse(data))
-				})
-			}
-		} else
-			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
-		break
-	case 'PUT':
-		if (s.length === 1) {
-			if (fs.statSync('data/'+s[0]).isDirectory()) {
-				res.sendStatus(428)
+				} else
+					list(res, req.params.channel)
 				break
+			case 'PUT':
+				put(res, req.params.channel)
+				break
+			case 'DELETE':
+				rimraf(__dirname+'/data/'+req.params.channel, function(err) {
+					if (err)
+						res.status(500).jsonp({ error: err })
+					else
+						res.status(204).jsonp(null)
+				})
+				break
+			default:
+				res.status(405).jsonp({ error: 'unsupported method' })
 			}
+		}
+	}, function(err) {
+		res.status(500).jsonp({ error: err })
+	})
 
-			fs.readFile('data/'+s[0], function(err, data) {
-				var ts = new Date(JSON.parse(data).properties.time * 1000)
-				fs.mkdir('data/'+chan, function(err) {
-					fs.rename('data/'+s[0], 'data/'+chan+'/'+ts.toISOString()+'.json', function(err) {
-						res.sendStatus(204)
-					})
+	function channels() {
+		return new Promise(function(resolve, reject) {
+			fs.readdir(__dirname+'/data', function(err, files) {
+				if (err)
+					return reject(err)
+
+				var channels = {}
+				files.map(function (c) {
+					if (fs.statSync(__dirname+'/data/'+c).isFile() && /\.json$/.test(c))
+						channels[c.replace(/\.json$/, '')] = { registered: false }
+					else if (fs.statSync(__dirname+'/data/'+c).isDirectory())
+						channels[c] = { registered: true }
+				})
+
+				resolve(channels)
+			})
+		})
+	}
+
+	function list(res, chan) {
+		var start = (req.query.start) ? (new Date(req.query.start)).getTime() : null
+		var end = (req.query.end) ? (new Date(req.query.end)).getTime() : null
+
+		fs.readdir(__dirname+'/data/'+chan, function(err, files) {
+			var times = []
+
+			files.sort().forEach(function(f) {
+				var t = (new Date(f.replace(/\.json$/, '')).getTime())
+				if (start && start > t)
+					return
+				if (end && end < t)
+					return
+				times.push(t)
+			})
+
+			res.jsonp({ times: times })
+		})
+	}
+
+	function put(res, chan) {
+		if (fs.statSync(__dirname+'/data/'+chan).isDirectory())
+			return res.status(428).jsonp({ error: 'channel already registered' })
+
+		fs.readFile(__dirname+'/data/'+chan, function(err, data) {
+			var ts = new Date(JSON.parse(data).properties.time * 1000)
+
+			fs.mkdir(__dirname+'/data/'+chan, function(err) {
+				fs.rename(__dirname+'/data/'+chan, __dirname+'/data/'+chan+'/'+ts.toISOString()+'.json', function(err) {
+					res.status(204).jsonp(null)
 				})
 			})
-		} else
-			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
-		break
-	case 'DELETE':
-		if (s.length === 1) {
-			rimraf('data/'+chan, function(err) {
-				res.sendStatus(204)
-			})
-		} else
-			res.status(409).jsonp({ error: 'registered and non-registered versions exist' })
-		break
-	default:
-		res.sendStatus(405)
+		})
 	}
 })
 
@@ -139,10 +135,10 @@ wss.on('connection', function(ws) {
 		console.log('ws: ['+remoteAddress+']:'+remotePort+': '+m)
 	}
 
-	log("connected")
+	log('connected')
 
 	ws.on('close', function() {
-		log("disconnected")
+		log('disconnected')
 
 		Object.keys(channel).forEach(function(chan) {
 			channel[chan].splice(channel[chan].indexOf(id), 1)
@@ -227,7 +223,7 @@ var gis = net.createServer(function(sock) {
 	sock.on('close', function() {
 		log('disconnected')
 	})
-	sock.pipe(es.split()).pipe(es.map(function (data) {
+	sock.pipe(es.split()).pipe(es.map(function(data) {
 		var meta = {
 			'id':		null,
 			'raw':		data,
@@ -324,7 +320,7 @@ var gis = net.createServer(function(sock) {
 
 		var g = toGeoJSON(point, properties)
 
-		fs.stat('data/'+properties.id, function(err, stat) {
+		fs.stat(__dirname+'/data/'+properties.id, function(err, stat) {
 			if (err !== null && channel[''] !== undefined)
 				channel[''].forEach(function(i) {
 					log('channel to client '+i)
@@ -358,8 +354,8 @@ var gis = net.createServer(function(sock) {
 			var name = properties.id
 			if (err === null)
 				name = name.concat('/'+ts.toISOString())
-			fs.writeFile('data/'+name+'.json', JSON.stringify(g), cb)
-		}.bind(g))
+			fs.writeFile(__dirname+'/data/'+name+'.json', JSON.stringify(g), cb)
+		})
 
 		return
 	}
