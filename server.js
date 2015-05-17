@@ -32,9 +32,7 @@ app.use('/lib/vis', express.static(__dirname+'/node_modules/vis/dist'))
 app.use('/lib/jquery', express.static(__dirname+'/node_modules/jquery/dist'))
 
 app.all('/channel/:channel?/:file?', function(req, res) {
-	var promise = channels()
-
-	promise.then(function(channels) {
+	channels().then(function(channels) {
 		if (req.params.channel === undefined)
 			return res.jsonp({ channels: channels })
 
@@ -49,8 +47,11 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 						if (err)
 							res.status(err.status).jsonp({ error: err.code })
 					})
-				} else
-					list(res, req.params.channel)
+				} else {
+					list(req.params.channel, req.query.start, req.query.end).then(function(matches) {
+						res.jsonp({ files: matches })
+					})
+				}
 				break
 			case 'PUT':
 				put(res, req.params.channel)
@@ -71,45 +72,6 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 		res.status(500).jsonp({ error: err })
 	})
 
-	function channels() {
-		return new Promise(function(resolve, reject) {
-			fs.readdir(__dirname+'/data', function(err, files) {
-				if (err)
-					return reject(err)
-
-				var channels = {}
-				files.map(function (c) {
-					if (fs.statSync(__dirname+'/data/'+c).isFile() && /\.json$/.test(c))
-						channels[c.replace(/\.json$/, '')] = { registered: false }
-					else if (fs.statSync(__dirname+'/data/'+c).isDirectory())
-						channels[c] = { registered: true }
-				})
-
-				resolve(channels)
-			})
-		})
-	}
-
-	function list(res, chan) {
-		var start = (req.query.start) ? (new Date(req.query.start)).getTime() : null
-		var end = (req.query.end) ? (new Date(req.query.end)).getTime() : null
-
-		fs.readdir(__dirname+'/data/'+chan, function(err, files) {
-			var matches = []
-
-			files.sort().forEach(function(f) {
-				var t = (new Date(f.replace(/\.json$/, '')).getTime())
-				if (start && start > t)
-					return
-				if (end && end < t)
-					return
-				matches.push(f.replace(/\.json$/, ''))
-			})
-
-			res.jsonp({ files: matches })
-		})
-	}
-
 	function put(res, chan) {
 		if (fs.statSync(__dirname+'/data/'+chan).isDirectory())
 			return res.status(428).jsonp({ error: 'channel already registered' })
@@ -125,6 +87,49 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 		})
 	}
 })
+
+function channels() {
+	return new Promise(function(resolve, reject) {
+		fs.readdir(__dirname+'/data', function(err, files) {
+			if (err)
+				return reject(err)
+
+			var channels = {}
+			files.map(function (c) {
+				if (fs.statSync(__dirname+'/data/'+c).isFile() && /\.json$/.test(c))
+					channels[c.replace(/\.json$/, '')] = { registered: false }
+				else if (fs.statSync(__dirname+'/data/'+c).isDirectory())
+					channels[c] = { registered: true }
+			})
+
+			resolve(channels)
+		})
+	})
+}
+
+function list(chan, rstart, rend) {
+	var start = (rstart) ? (new Date(rstart)).getTime() : null
+	var end = (rend) ? (new Date(rend)).getTime() : null
+
+	return new Promise(function(resolve, reject) {
+		fs.readdir(__dirname+'/data/'+chan, function(err, files) {
+			if (err)
+				return reject(err)
+
+			var matches = []
+			files.sort().forEach(function(f) {
+				var t = (new Date(f.replace(/\.json$/, '')).getTime())
+				if (start && start > t)
+					return
+				if (end && end < t)
+					return
+				matches.push(f.replace(/\.json$/, ''))
+			})
+
+			resolve(matches)
+		})
+	})
+}
 
 var	client = {},
 	iid = 0
@@ -169,6 +174,37 @@ wss.on('connection', function(ws) {
 		}
 
 		switch (message.type) {
+		case 'realtime':
+			channels().then(function(channels) {
+				var file;
+				if (!channels[message.channel]) {
+					ws.send(JSON.stringify({
+						tag: message.tag,
+						type: 'error',
+						text: 'no such channel'
+					}))
+					return
+				} else if (channels[message.channel].registered) {
+					list(message.channel).then(function(files) {
+						var file = __dirname+'/data/'+message.channel+'/'+files.pop()+'.json'
+						ws.send(JSON.stringify({
+							tag:		message.tag,
+							type:		'realtime',
+							channel:	message.channel,
+							geojson:	JSON.parse(fs.readFileSync(file))
+						}))
+					})
+				} else {
+					var file = __dirname+'/data/'+message.channel+'.json'
+					ws.send(JSON.stringify({
+						tag:		message.tag,
+						type:		'realtime',
+						channel:	message.channel,
+						geojson:	JSON.parse(fs.readFileSync(file))
+					}))
+				}
+			})
+			break
 		case 'subscribe':
 			var rules = []
 			try {
@@ -187,7 +223,7 @@ wss.on('connection', function(ws) {
 			break
 		default:
 			ws.send(JSON.stringify({
-				tag:	tag,
+				tag:	message.tag,
 				type:	'error',
 				text:	"unknown command '"+message.type+"'",
 			}))
