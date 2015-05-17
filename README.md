@@ -24,22 +24,12 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 # Preflight
 
-These instructions are for [Debian 'wheezy' 7.x](https://www.debian.org/) but should be easily adaptable to other operating systems (including Mac OS X and Windows).
-
-You will need to be plumbed into [Debian Backports to easily install node.js](https://packages.debian.org/wheezy-backports/nodejs) which if you are not already, you can do by typing:
-
-    sudo cat <<'EOF' > /etc/apt/sources.list.d/debian-backports.list
-    deb http://http.debian.net/debian wheezy-backports main
-    #deb-src http://http.debian.net/debian wheezy-backports main
-    EOF
-    
-    apt-get update
+These instructions are for [Debian 'jessie' 8.x](https://www.debian.org/) but should be easily adaptable to other operating systems (including Mac OS X and Windows).
 
 Now to fetch GISrec and set up its dependencies:
 
-    sudo apt-get install -yy --no-install-recommends git ca-certificates nodejs curl build-essential python
-    sudo ln -f -s /usr/bin/nodejs /usr/local/bin/node
-    curl -L -O -J https://npmjs.org/install.sh && sudo sh install.sh
+    sudo apt-get update
+    sudo apt-get install -yy --no-install-recommends git ca-certificates nodejs nodejs-legacy npm
     
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
