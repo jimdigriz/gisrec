@@ -1,6 +1,0 @@
-[submodule "sidebar-v2"]
-	path = sidebar-v2
-	url = https://github.com/Turbo87/sidebar-v2.git
-[submodule "Leaflet"]
-	path = Leaflet
-	url = https://github.com/Leaflet/Leaflet.git
