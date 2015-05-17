@@ -67,6 +67,7 @@ There main features of the interface are:
 
  * typical [OpenStreetMap](http://www.openstreetmap.org/) interactable map
  * scroll and zoomable timeline which is primarily used to group data points into sets.  So you can state that your tracker was attached to the cat 'Lulu for some data points', whilst for other points it was on 'Jones'
+ * double click on the timeline to open the group name editor
  * two control widgets in the bottom right
   * location arrow opens the 'channels' window
   * the cog opens the settings page - from here you can enable some basic JavaScript console debugging
