@@ -6,13 +6,12 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
- * for [historic playback](https://github.com/hallahan/LeafletPlayback)
+ * historic playback
  * remove 'inactive' class, figure out how to make do with just 'active'
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * local storage for naming/groups, plus share back to server
  * group broadcast events (reg/unreg)
  * meta data tagging/hovers/etc
- * make use of layers
  * pruner for old unreg devices
  * auto-zoom/focus
  * data storage format

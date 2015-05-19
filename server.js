@@ -27,7 +27,7 @@ app.use(express.static(__dirname+'/public'))
 app.use('/lib/font-awesome', express.static(__dirname+'/node_modules/font-awesome'))
 app.use('/lib/bootstrap', express.static(__dirname+'/node_modules/bootstrap/dist'))
 app.use('/lib/es6-promise', express.static(__dirname+'/node_modules/es6-promise/dist'))
-app.use('/lib/leaflet', express.static(__dirname+'/node_modules/leaflet/dist'))
+app.use('/lib/openlayers', express.static(__dirname+'/node_modules/openlayers/dist'))
 app.use('/lib/vis', express.static(__dirname+'/node_modules/vis/dist'))
 app.use('/lib/jquery', express.static(__dirname+'/node_modules/jquery/dist'))
 

@@ -4,24 +4,78 @@ $('#debug').click(function(event) {
 	debug = $(this).hasClass('active')
 })
 
-var map = L.map('map', {
-	zoomControl: false,
-}).fitWorld().zoomIn()
-L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-	attribution: 'Map data &copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-}).addTo(map)
-L.control.scale().addTo(map)
+window.gisControl = {}
+var gisControl = window.gisControl
 
-var gisControl = L.Control.extend({
-	options: {
-		position: 'bottomright',
-	},
+gisControl.channels = function(opt_options) {
+	var options = opt_options || {}
 
-	onAdd: function (map) {
-		return $('<div class="leaflet-bar leaflet-control"><a title="settings" href="#" data-toggle="modal" data-target="#settings"><i class="fa fa-lg fa-cog"></i></a><a href="#" title="channels" data-toggle="modal" data-target="#channels"><i class="fa fa-lg fa-location-arrow"></i></a></div>').get(0)
-	},
+	var handle_click = function(e) {
+		$('#channels').modal('show')
+	}
+
+	var button = $('<button title="Open Channels" type="button" class="fa fa-lg fa-location-arrow"/>').get(0)
+	button.addEventListener('click', handle_click, false)
+	button.addEventListener('touchstart', handle_click, false)
+
+	var element = document.createElement('div')
+	element.className = 'ol-gisrec-channels ol-unselectable ol-control'
+	element.appendChild(button)
+
+	ol.control.Control.call(this, {
+		element: element,
+		target: options.target
+	})
+}
+ol.inherits(gisControl.channels, ol.control.Control)
+
+gisControl.settings = function(opt_options) {
+	var options = opt_options || {}
+
+	var handle_click = function(e) {
+		$('#settings').modal('show')
+	}
+
+	var button = $('<button title="Open Settings" type="button" class="fa fa-lg fa-cog"/>').get(0)
+	button.addEventListener('click', handle_click, false)
+	button.addEventListener('touchstart', handle_click, false)
+
+	var element = document.createElement('div')
+	element.className = 'ol-gisrec-settings ol-unselectable ol-control'
+	element.appendChild(button)
+
+	ol.control.Control.call(this, {
+		element: element,
+		target: options.target
+	})
+}
+ol.inherits(gisControl.settings, ol.control.Control)
+
+var map = new ol.Map({
+	target: 'map',
+	layers: [
+		new ol.layer.Tile({
+			source: new ol.source.OSM({})
+		})
+	],
+	controls: ol.control.defaults({
+		attributionOptions: ({
+				collapsible: false
+		})
+		}).extend([
+			new ol.control.FullScreen(),
+			new gisControl.channels(),
+			new gisControl.settings()
+		]
+	),
+	interactions: ol.interaction.defaults().extend([
+		new ol.interaction.DragRotateAndZoom()
+	]),
+	view: new ol.View({
+		center: [0, 0],
+		zoom: 3
+	})
 })
-map.addControl(new gisControl())
 
 var data = new vis.DataSet()
 var layers = {}
@@ -31,7 +85,7 @@ data.on('*', function(event, properties, sender) {
 		case 'add':
 			var d = data.get(id)
 
-			layers[id] = L.geoJson(d['geojson']).addTo(map)
+			//layers[id] = L.geoJson(d['geojson']).addTo(map)
 			break
 		case 'update':
 			var d = data.get(id)
@@ -41,7 +95,7 @@ data.on('*', function(event, properties, sender) {
 			layers[id].addData(d['geojson'])
 			break
 		case 'remove':
-			map.removeLayer(layers[id])
+			//map.removeLayer(layers[id])
 			delete layers[id]
 			break
 		}

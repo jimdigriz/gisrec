@@ -1,10 +1,22 @@
-body {
+html, body, #map {
 	padding: 0;
 	margin: 0;
+	height: 100%;
+	width: 100%;
 }
 
-html, body, #map {
-	height: 100%;
+.ol-full-screen, .ol-zoom, .ol-rotate {
+	top: 7.5em;
+}
+
+.ol-gisrec-channels {
+	left: 0.5em;
+	bottom: 0.5em;
+}
+
+.ol-gisrec-settings {
+	left: 0.5em;
+	bottom: 2.5em;
 }
 
 .modal.fade:not(.in).bottom .modal-dialog {
