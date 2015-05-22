@@ -78,25 +78,33 @@ var map = new ol.Map({
 })
 
 var data = new vis.DataSet()
-var layers = {}
+var groups = []
 data.on('*', function(event, properties, sender) {
-	properties.items.forEach(function(id) {
+	properties.items.forEach(function(i) {
 		switch (event) {
 		case 'add':
-			var d = data.get(id)
-
-			//layers[id] = L.geoJson(d['geojson']).addTo(map)
+			var d = data.get(i)
+			console.log(i);
+			if (!groups.filter(function(g) { return g.id === d.group }).length) {
+				groups.push({
+					id: d.group,
+					content: d.group
+				})
+			}
 			break
 		case 'update':
-			var d = data.get(id)
-			var o = properties.data[id]
+			var d = data.get(i)
+			var o = properties.data[i]
  
-			layers[id].clearLayers()
-			layers[id].addData(d['geojson'])
+			//layers[i].clearLayers()
+			//layers[i].addData(d['geojson'])
 			break
 		case 'remove':
-			//map.removeLayer(layers[id])
-			delete layers[id]
+			if (!data.get({ filter: function(i) { return g.id === i }}).length)
+				groups = groups.filter(function (g) { return g.id !== i })
+
+			//map.removeLayer(layers[i])
+			//delete layers[i]
 			break
 		}
 	})
@@ -110,6 +118,7 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	type: 'point',
 	start: timelineStart,
 	end: timelineEnd,
+	group: groups,
 	editable: {
 		updateGroup: true,
 		remove: true,
@@ -218,10 +227,10 @@ connection.onopen = function(){
 				break
 			}
 			data.update({
-				id: 'realtime:'+message.channel,
 				type: 'box',
-				content: message.channel,
+				content: 'realtime',
 				start: new Date(message.geojson.properties.time * 1000),
+				group: message.channel,
 				geojson: message.geojson
 			})
 			break
@@ -238,7 +247,11 @@ connection.onopen = function(){
 		case 'location-arrow':
 			a.toggleClass('inactive')
 			if (a.hasClass('inactive')) {
-				data.i.remove('realtime')
+				data.remove(data.get({
+					filter: function (j) {
+						return j.group === i && j.content === 'realtime'
+					}})
+				)
 			} else {
 				subs.push('^'+i+'$')
 				send({ type: 'subscribe', rules: subs })
