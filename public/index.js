@@ -72,39 +72,69 @@ var map = new ol.Map({
 		new ol.interaction.DragRotateAndZoom()
 	]),
 	view: new ol.View({
-		center: [0, 0],
+		projection: 'EPSG:900913',
+		center: ol.proj.transform([0, 0], 'EPSG:4326', 'EPSG:900913'),
 		zoom: 3
 	})
 })
 
+var styles = {
+	'Point': [new ol.style.Style({
+		text: new ol.style.Text({
+			text: '\uf041',
+			font: '2em FontAwesome',
+			textBaseline: 'Bottom',
+			fill: new ol.style.Fill({
+				color: 'blue',
+			})
+		})
+	})]
+}
+var styleFunction = function(feature, resolution) {
+	return styles[feature.getGeometry().getType()];
+}
+
 var data = new vis.DataSet()
-var groups = []
+var groups = [],
+	layers = { }
 data.on('*', function(event, properties, sender) {
 	properties.items.forEach(function(i) {
 		switch (event) {
 		case 'add':
 			var d = data.get(i)
-			console.log(i);
-			if (!groups.filter(function(g) { return g.id === d.group }).length) {
-				groups.push({
-					id: d.group,
-					content: d.group
+
+//			if (!groups.filter(function(g) { return g.id === d.group }).length) {
+//				groups.push({
+//					id: d.group,
+//					content: d.group
+//				})
+//			}
+			d.vector = new ol.source.Vector({
+				features: (new ol.format.GeoJSON()).readFeatures(d.geojson, {
+					dataProjection: 'EPSG:4326',
+					featureProjection: 'EPSG:900913'
 				})
-			}
+			})
+			d.layer = new ol.layer.Vector({
+				source: d.vector,
+				style: styleFunction
+			})
+			layers[i] = d.layer
+			map.addLayer(d.layer)
 			break
 		case 'update':
 			var d = data.get(i)
 			var o = properties.data[i]
- 
-			//layers[i].clearLayers()
-			//layers[i].addData(d['geojson'])
+
+			d.vector.forEachFeature(function(f) {
+				f.setGeometry(ol.proj.transform(d.geojson.geometry.coordinates, 'EPSG:4326', 'EPSG:900913'))
+			}
 			break
 		case 'remove':
-			if (!data.get({ filter: function(i) { return g.id === i }}).length)
-				groups = groups.filter(function (g) { return g.id !== i })
-
-			//map.removeLayer(layers[i])
-			//delete layers[i]
+//			if (data.get({ filter: function(i) { return g.id === i }}).length)
+//				groups = groups.filter(function (g) { return g.id !== i })
+			map.removeLayer(layers[i])
+			delete layers[i]
 			break
 		}
 	})
@@ -230,7 +260,7 @@ connection.onopen = function(){
 				type: 'box',
 				content: 'realtime',
 				start: new Date(message.geojson.properties.time * 1000),
-				group: message.channel,
+				subgroup: message.channel,
 				geojson: message.geojson
 			})
 			break
@@ -247,22 +277,29 @@ connection.onopen = function(){
 		case 'location-arrow':
 			a.toggleClass('inactive')
 			if (a.hasClass('inactive')) {
+				subs = subs.filter(function(s) { return s !== '^'+i+'$' })
 				data.remove(data.get({
 					filter: function (j) {
-						return j.group === i && j.content === 'realtime'
+						return j.group === undefined && j.subgroup === i
 					}})
 				)
 			} else {
 				subs.push('^'+i+'$')
-				send({ type: 'subscribe', rules: subs })
 				send({ type: 'realtime', channel: i })
 			}
+			send({ type: 'subscribe', rules: subs })
 			break
 		case 'history':
 			a.toggleClass('inactive')
-			if (a.hasClass('inactive'))
-				data.i.clear()		// FIXME should remove all but realtime
-			updateHistory()
+			if (a.hasClass('inactive')) {
+				data.remove(data.get({
+					filter: function (j) {
+						return j.group === i
+					}})
+				)
+			} else {
+				// TODO
+			}
 			break
 		case 'plus':
 			if (xhr['put channel '+i] !== undefined)

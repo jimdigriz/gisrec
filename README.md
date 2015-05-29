@@ -20,6 +20,7 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
  * handle the [GPRMC checksum](http://www.tigoe.com/pcomp/code/Processing/127/)
  * check xexun length and crc16
  * websocket reconnect
+ * handle various projections, for example OSM uses EPSG:900913 whilst my GeoJSON data is in EPSG:4326
 
 # Preflight
 
