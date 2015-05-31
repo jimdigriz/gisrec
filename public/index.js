@@ -91,13 +91,16 @@ var styles = {
 	})]
 }
 var styleFunction = function(feature, resolution) {
-	return styles[feature.getGeometry().getType()];
+	return styles[feature.getGeometry().getType()]
 }
 
 var data = new vis.DataSet()
 var groups = [],
 	layers = { }
 data.on('*', function(event, properties, sender) {
+	if (sender === 'self')
+		return
+
 	properties.items.forEach(function(i) {
 		switch (event) {
 		case 'add':
@@ -119,6 +122,7 @@ data.on('*', function(event, properties, sender) {
 				source: d.vector,
 				style: styleFunction
 			})
+			data.update(d, 'self')
 			layers[i] = d.layer
 			map.addLayer(d.layer)
 			break
@@ -127,7 +131,9 @@ data.on('*', function(event, properties, sender) {
 			var o = properties.data[i]
 
 			d.vector.forEachFeature(function(f) {
-				f.setGeometry(ol.proj.transform(d.geojson.geometry.coordinates, 'EPSG:4326', 'EPSG:900913'))
+				f.getGeometry().setCoordinates(
+					ol.proj.transform(d.geojson.geometry.coordinates, 'EPSG:4326', 'EPSG:900913')
+				)
 			})
 			break
 		case 'remove':
@@ -257,6 +263,7 @@ connection.onopen = function(){
 				break
 			}
 			data.update({
+				id: 'realtime:'+message.channel,
 				type: 'box',
 				content: 'realtime',
 				start: new Date(message.geojson.properties.time * 1000),
