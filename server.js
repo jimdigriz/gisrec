@@ -209,7 +209,7 @@ wss.on('connection', function(ws) {
 			var rules = []
 			try {
 				message.rules.forEach(function(re) {
-					subs.push(new RegExp(re))
+					rules.push(new RegExp(re))
 				})
 				client[id].subs = rules
 			}
@@ -349,8 +349,8 @@ var gis = net.createServer(function(sock) {
 		properties.gprmc.checksum		= checksum
 
 		var g = toGeoJSON(point, properties)
-		Object.keys(clients).forEach(function(id) {
-			clients[id].subs.forEach(function(re) {
+		Object.keys(client).forEach(function(id) {
+			client[id].subs.forEach(function(re) {
 				if (!re.test(properties.id))
 					return
 
