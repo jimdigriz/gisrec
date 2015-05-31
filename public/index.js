@@ -128,7 +128,7 @@ data.on('*', function(event, properties, sender) {
 
 			d.vector.forEachFeature(function(f) {
 				f.setGeometry(ol.proj.transform(d.geojson.geometry.coordinates, 'EPSG:4326', 'EPSG:900913'))
-			}
+			})
 			break
 		case 'remove':
 //			if (data.get({ filter: function(i) { return g.id === i }}).length)
