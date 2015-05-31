@@ -317,6 +317,11 @@ var gis = net.createServer(function(sock) {
 		}
 
 		var match = reGPRMC.exec(data)
+		if (!match) {
+			log("reGPRMC does not match")
+			return
+		}
+
 		var	time = match[1],
 			validity = ( match[2] === 'A' ) ? 1 : 0,
 			latitude = parseFloat(match[3]),	hemisphere = match[4],
