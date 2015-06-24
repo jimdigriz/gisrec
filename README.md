@@ -75,14 +75,12 @@ There main features of the interface are:
 
 # Testing
 
-If running, then go to 'location' (arrow in the bottom right) and in the pop up window click on 'Unregistered'.
-
 Now from a terminal run:
 
     echo "$(date -u +'%y%m%d%H%M%S'),+441234567891,GPRMC,$(date -u +'%H%M%S').000,A,3817.5552,N,14125.4289,E,0.00,136.36,$(date -u +'%d%m%y'),,,A*6C,F,, imei:012345678901234,08,69.4,F:4.18V,0,140,2068,123,10,10AB,40BC" \
     	| nc -q0 localhost 27271
 
-In the window should appear a channel with the ID '012345678901234', click on the location arrow to the right of it.  Now a marker should appear just off the coast of Japan and if you scroll the timeline at the top, you should see a point marked for the current timestamp.
+Now go to 'location' (arrow in the bottom left) and in the pop up window click on 'Refresh'.  In that window should appear a channel with the ID '012345678901234', where you should click on the location arrow to the right of it.  Now a marker should appear just off the coast of Japan and if you scroll the timeline at the top, you should see a point marked for the current timestamp.
 
 Recordings appear in the `data` directory of the project.  If the device is 'unregistered' you get no historic data, just a single [GeoJSON formatted file](http://geojson.org/) named after the device ID '012345678901234'.  If the device is registered, then instead you will find a directory named '012345678901234' containing an ISO timestamp named file for each point.
 
