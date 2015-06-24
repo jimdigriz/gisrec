@@ -45,6 +45,10 @@ html, body, #map {
 	margin-top: 110px;
 }
 
+#channellist > tbody > tr > th {
+	width: 100%;
+}
+
 .gisrec > a {
 	color: #000;
 }

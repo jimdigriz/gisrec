@@ -215,7 +215,7 @@ $('#channels #refresh').click(function(event) {
 			Object.keys(jp.channels).filter(function(i) { return p[i] === undefined }).forEach(function(id) {
 				var type = (jp.channels[id].registered) ? 'history' : 'plus'
 
-				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th style="width: 100%;">'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>')
+				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th>'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>')
 				p[id] = 1
 			})
 
