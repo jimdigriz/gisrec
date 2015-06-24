@@ -9,6 +9,24 @@ html, body, #map {
 	top: 7.5em;
 }
 
+.layer-switcher {
+	top: 9.5em;
+	right: 0.5em;
+}
+
+.layer-switcher button {
+	background-color: rgba(0, 60, 136, 0.5);
+	background-size: 1.2em 1.2em;
+	width: 1.375em;
+	height: 1.375em;
+}
+
+.ol-scale-line, .ol-scale-line:not([ie8andbelow]) {
+	right: 0.5em;
+	left: auto;
+	bottom: 1.5em;
+}
+
 .ol-gisrec-channels {
 	left: 0.5em;
 	bottom: 0.5em;

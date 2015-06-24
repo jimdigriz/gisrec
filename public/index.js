@@ -55,7 +55,22 @@ var map = new ol.Map({
 	target: 'map',
 	layers: [
 		new ol.layer.Tile({
-			source: new ol.source.OSM({})
+			title: 'OpenStreetMap',
+			type: 'base',
+			visible: true,
+			source: new ol.source.OSM({
+				crossOrigin: null
+			})
+		}),
+		new ol.layer.Tile({
+			title: 'Bing Maps (Aerial)',
+			type: 'base',
+			visible: false,
+			source: new ol.source.BingMaps({
+				// key: '',
+				culture: window.navigator.languages[0] || window.navigator.userLanguage || window.navigator.language,
+				imagerySet: 'Aerial'
+			})
 		})
 	],
 	controls: ol.control.defaults({
@@ -64,6 +79,8 @@ var map = new ol.Map({
 		})
 		}).extend([
 			new ol.control.FullScreen(),
+			new ol.control.ScaleLine(),
+			new ol.control.LayerSwitcher({ tipLabel: 'Legend' }),
 			new gisControl.channels(),
 			new gisControl.settings()
 		]

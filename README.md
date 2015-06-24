@@ -6,6 +6,8 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
+ * need to get Bing Maps API key
+ * when full screen, models do not show
  * historic playback
  * remove 'inactive' class, figure out how to make do with just 'active'
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
@@ -34,6 +36,7 @@ Now to fetch GISrec and set up its dependencies:
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
     
+    git submodule update --init
     npm install
 
 # Run
