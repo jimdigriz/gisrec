@@ -6,7 +6,6 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
- * need to get Bing Maps API key
  * when full screen, models do not show
  * historic playback
  * remove 'inactive' class, figure out how to make do with just 'active'

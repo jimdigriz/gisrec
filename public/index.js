@@ -67,9 +67,10 @@ var map = new ol.Map({
 			type: 'base',
 			visible: false,
 			source: new ol.source.BingMaps({
-				// key: '',
+				key: 'AiacPueEKeXax2ZLDSae4M4B4sQyr9HtgHFGvvaXAVj0Sfe000usBSik9_fzKFX_',
 				culture: window.navigator.languages[0] || window.navigator.userLanguage || window.navigator.language,
-				imagerySet: 'Aerial'
+				imagerySet: 'Aerial',
+				maxZoom: 19
 			})
 		})
 	],
