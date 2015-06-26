@@ -198,7 +198,7 @@ data.on('*', function(event, properties, sender) {
 						start: new Date(o.geojson.properties.time * 1000),
 						group: i,
 						geojson: o.geojson
-					})
+					}, 'history')
 				}
 				break
 			}
