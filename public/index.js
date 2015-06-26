@@ -4,6 +4,9 @@ $('#debug').click(function(event) {
 	debug = $(this).hasClass('active')
 })
 
+var	xhr = {}
+	timeout = {}
+
 window.gisControl = {}
 var gisControl = window.gisControl
 
@@ -117,7 +120,7 @@ var layers = {
 			image: new ol.style.Circle({
 				radius: 10,
 				stroke: new ol.style.Stroke({
-					color: 'springgreen'
+					color: 'lime'
 				}),
 				fill: new ol.style.Fill({
 					color: 'white'
@@ -177,14 +180,14 @@ data.on('*', function(event, properties, sender) {
 					map.addLayer(layers[d.group])
 				}
 
-				layers[d.group].getSource().getFeatures()[0].getGeometry().appendPoint(
-					new ol.geom.Point(
-						(new ol.format.GeoJSON()).readFeature(d.geojson, {
-							dataProjection: 'EPSG:4326',
-							featureProjection: 'EPSG:900913'
-						}).getGeometry().getCoordinates()
-					)
-				)
+				if (timeout[d.group])
+					clearTimeout(timeout[d.group])
+				timeout[d.group] = setTimeout(function() {
+					timeout[d.group] = undefined
+
+					layers[d.group].getSource().clear()
+					layers[d.group].getSource().addFeatures(buildFeatures(d.group))
+				}.bind(d), 250)
 				break
 			}
 			break
@@ -213,22 +216,38 @@ data.on('*', function(event, properties, sender) {
 				)
 				break
 			case 'history':
-				if (data.get({ filter: function(j) { return j.id === i }}).length) {
-					groups = groups.filter(function(g) {
-						if (g === i) {
-							map.removeLayer(layers[g])
-							delete layers[g]
-							return false
-						}
-						return true
-					})
-				}
+				var g = i.replace(/:.*$/, '')
+				if (timeout[g])
+					clearTimeout(timeout[g])
+				timeout[g] = setTimeout(function() {
+					timeout[g] = undefined
+
+					var features = buildFeatures(g)
+					if (features.length) {
+						layers[g].getSource().clear()
+						layers[g].getSource().addFeatures(features)
+					} else {
+						map.removeLayer(layers[g])
+					}
+				}.bind(g), 250)
 				break
 			}
 			break
 		}
 	})
 })
+
+function buildFeatures(group) {
+	return (new ol.format.GeoJSON()).readFeatures({
+		type: 'FeatureCollection',
+		features: data.get({ filter: function(i) {
+				return i.group = group
+			}}).map(function(j) { return j.geojson })
+		}, {
+			dataProjection: 'EPSG:4326',
+			featureProjection: 'EPSG:900913'
+		})
+}
 
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	orientation: 'top',
@@ -245,22 +264,20 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 timeline.on('doubleClick', function(props) {
 	$('#groups').modal('show')
 })
-var timelineRangeChanged;
 timeline.on('rangechanged', function(props) {
-	if (timelineRangeChanged !== undefined)
-		clearTimeout(timelineRangeChanged)
+	if (timeout['_timeline'] !== undefined)
+		clearTimeout(timeout['_timeline'])
 
 	if (props.byUser) {
-		timelineRangeChanged = setTimeout(function(){
-			timelineRangeChanged = undefined
+		timeout['_timeline'] = setTimeout(function() {
+			timeout['_timeline'] = undefined
 			history()
-		}, 500)
+		}, 250)
 	} else {
 		history()
 	}
 })
 
-var xhr = {}
 $('#channels #refresh').click(function(event) {
 	function cleanup() {
 		$('#channellist #refresh i').toggleClass('fa-spin')
@@ -326,14 +343,14 @@ function history() {
 			data: { start: timelineRange.start.getTime(), end: timelineRange.end.getTime() },
 			success: function(jp) {
 				delete xhr['channel '+id]
-				jp.files.forEach(function(f){
+				jp.files.forEach(function(f) {
 					if (xhr['channel '+id+' '+f] !== undefined)
 						return
 
 					xhr['channel '+id+' '+f] = $.ajax({
 						dataType: 'json',
 						url: '/channel/'+id+'/'+f+'.json',
-						success: function(j){
+						success: function(j) {
 							delete xhr['channel '+id+' '+f]
 
 							var results = []
@@ -342,7 +359,7 @@ function history() {
 							case 'Feature':
 								j = { type: 'FeatureCollection', features: [ j ] }
 							case 'FeatureCollection':
-								j.features.forEach(function(i){
+								j.features.forEach(function(i) {
 									if (i.properties.time * 1000 < timelineRange.start.getTime() || i.properties.time * 1000 > timelineRange.end.getTime())
 										return
 									if (data.get(id+':'+i.properties.time) === null) {
@@ -362,7 +379,7 @@ function history() {
 
 							data.update(results, 'history')
 						},
-						error: function(j){
+						error: function(j) {
 							delete xhr['channel '+id+' '+f]
 						}
 					})
@@ -378,7 +395,7 @@ function history() {
 var 	tag = 0,
 	connection = new WebSocket('ws://' + location.host),
 	subs = []
-connection.onopen = function(){
+connection.onopen = function() {
 	function log(m){
 		if (debug)
 			console.log('GISrec:ws: '+m)
@@ -392,10 +409,10 @@ connection.onopen = function(){
 
 	log('connected')
 
-	connection.onclose = function(e){
+	connection.onclose = function(e) {
 		log('disconnected: '+e)
 	}
-	connection.onmessage = function(e){
+	connection.onmessage = function(e) {
 		log('message: '+e.data)
 
 		var message = JSON.parse(e.data)
@@ -431,7 +448,7 @@ connection.onopen = function(){
 		}
 	}
 
-	$('#channellist').click(function(event){
+	$('#channellist').click(function(event) {
 		var i = $(event.target).closest('tr').attr('id')
 		var a = $(event.target).closest('td')
 
