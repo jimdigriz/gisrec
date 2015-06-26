@@ -123,7 +123,7 @@ var styleFunction = function(feature, resolution) {
 }
 
 var data = new vis.DataSet()
-var groups = [],
+var	groups = [],
 	layers = { }
 data.on('*', function(event, properties, sender) {
 	if (sender === 'self')
@@ -134,12 +134,12 @@ data.on('*', function(event, properties, sender) {
 		case 'add':
 			var d = data.get(i)
 
-//			if (!groups.filter(function(g) { return g.id === d.group }).length) {
-//				groups.push({
-//					id: d.group,
-//					content: d.group
-//				})
-//			}
+			if (!groups.filter(function(g) { return g.id === d.group }).length) {
+				groups.push({
+					id: d.group,
+					content: d.group
+				})
+			}
 			d.vector = new ol.source.Vector({
 				features: (new ol.format.GeoJSON()).readFeatures(d.geojson, {
 					dataProjection: 'EPSG:4326',
@@ -165,8 +165,8 @@ data.on('*', function(event, properties, sender) {
 			})
 			break
 		case 'remove':
-//			if (data.get({ filter: function(i) { return g.id === i }}).length)
-//				groups = groups.filter(function (g) { return g.id !== i })
+			if (data.get({ filter: function(i) { return g.id === i }}).length)
+				groups = groups.filter(function(g) { return g.id !== i })
 			map.removeLayer(layers[i])
 			delete layers[i]
 			break
@@ -174,14 +174,11 @@ data.on('*', function(event, properties, sender) {
 	})
 })
 
-var now = new Date()
-var timelineStart = new Date(now.getTime() - 10*60000)
-	, timelineEnd = new Date(now.getTime() + 5*60000)
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	orientation: 'top',
 	type: 'point',
-	start: timelineStart,
-	end: timelineEnd,
+	start: new Date(new Date().getTime() - 10*60000),
+	end: new Date(new Date().getTime() + 5*60000),
 	group: groups,
 	editable: {
 		updateGroup: true,
@@ -192,10 +189,19 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 timeline.on('doubleClick', function(props) {
 	$('#groups').modal('show')
 })
+var timelineRangeChanged;
 timeline.on('rangechanged', function(props) {
-	timelineStart = props.start
-	timelineEnd = props.end
-	history()
+	if (timelineRangeChanged !== undefined)
+		clearTimeout(timelineRangeChanged)
+
+	if (props.byUser) {
+		timelineRangeChanged = setTimeout(function(){
+			timelineRangeChanged = undefined
+			history()
+		}, 500)
+	} else {
+		history()
+	}
 })
 
 var xhr = {}
@@ -215,7 +221,6 @@ $('#channels #refresh').click(function(event) {
 
 	xhr['refresh'] = $.ajax({
 		dataType: 'jsonp',
-		jsonp: 'callback',
 		url: '/channel',
 		success: function(jp) {
 			cleanup()
@@ -224,8 +229,7 @@ $('#channels #refresh').click(function(event) {
 			$('#channellist tr[id]').map(function() { p[this.id] = 1 })
 
 			Object.keys(jp.channels).filter(function(i) { return p[i] === undefined }).forEach(function(id) {
-				var type = (jp.channels[id].registered) ? 'history' : 'plus'
-
+				var type = (jp.channels[id].registered) ? 'history' : 'plus';
 				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th>'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>')
 				p[id] = 1
 			})
@@ -243,8 +247,45 @@ $('#channels #refresh').click(function(event) {
 $('#channels #refresh').click()
 
 function history() {
+	var timelineRange = timeline.getWindow()
+
 	$('#channellist tr[id]:has(#history:not(.inactive))').map(function() {
 		var id = this.id
+		if (xhr['channel '+id] !== undefined)
+			xhr['channel '+id].abort()
+
+		xhr['channel '+id] = $.ajax({
+			dataType: 'jsonp',
+			url: '/channel/'+id,
+			data: { start: timelineRange.start.getTime(), end: timelineRange.end.getTime() },
+			success: function(jp) {
+				delete xhr['channel '+id]
+				jp.files.forEach(function(f){
+					if (xhr['channel '+id+' '+f] !== undefined)
+						return
+
+					xhr['channel '+id+' '+f] = $.ajax({
+						dataType: 'json',
+						url: '/channel/'+id+'/'+f+'.json',
+						success: function(j){
+							delete xhr['channel '+id+' '+f]
+							data.update({
+								id: id+':'+j.properties.time,
+								start: new Date(j.properties.time * 1000),
+								group: id,
+								geojson: j
+							})
+						},
+						error: function(j){
+							delete xhr['channel '+id+' '+f]
+						}
+					})
+				})
+			},
+			error: function(jp) {
+				delete xhr['channel '+id]
+			}
+		})
 	})
 }
 
@@ -291,9 +332,9 @@ connection.onopen = function(){
 				break
 			}
 			data.update({
-				id: 'realtime:'+message.channel,
+				id: message.channel+':realtime',
 				type: 'box',
-				content: 'realtime',
+				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
 				subgroup: message.channel,
 				geojson: message.geojson
@@ -314,7 +355,7 @@ connection.onopen = function(){
 			if (a.hasClass('inactive')) {
 				subs = subs.filter(function(s) { return s !== '^'+i+'$' })
 				data.remove(data.get({
-					filter: function (j) {
+					filter: function(j) {
 						return j.group === undefined && j.subgroup === i
 					}})
 				)
@@ -328,12 +369,12 @@ connection.onopen = function(){
 			a.toggleClass('inactive')
 			if (a.hasClass('inactive')) {
 				data.remove(data.get({
-					filter: function (j) {
+					filter: function(j) {
 						return j.group === i
 					}})
 				)
 			} else {
-				// TODO
+				history()
 			}
 			break
 		case 'plus':
@@ -342,7 +383,6 @@ connection.onopen = function(){
 
 			xhr['put channel '+i] = $.ajax({
 				dataType: 'jsonp',
-				jsonp: 'callback',
 				type: 'PUT',
 				url: '/channel/'+i,
 				success: function(jp) {
@@ -362,7 +402,6 @@ connection.onopen = function(){
 
 			xhr['delete channel '+i] = $.ajax({
 				dataType: 'jsonp',
-				jsonp: 'callback',
 				type: 'DELETE',
 				url: '/channel/'+i,
 				success: function(jp) {

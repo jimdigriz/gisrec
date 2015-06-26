@@ -108,10 +108,7 @@ function channels() {
 	})
 }
 
-function list(chan, rstart, rend) {
-	var start = (rstart) ? (new Date(rstart)).getTime() : null
-	var end = (rend) ? (new Date(rend)).getTime() : null
-
+function list(chan, start, end) {
 	return new Promise(function(resolve, reject) {
 		fs.readdir(__dirname+'/data/'+chan, function(err, files) {
 			if (err)
@@ -119,10 +116,10 @@ function list(chan, rstart, rend) {
 
 			var matches = []
 			files.sort().forEach(function(f) {
-				var t = (new Date(f.replace(/\.json$/, '')).getTime())
-				if (start && start > t)
+				var t = new Date(f.replace(/\.json$/, '')).getTime()
+				if (start && (new Date()).setTime(start) > t)
 					return
-				if (end && end < t)
+				if (end && (new Date()).setTime(end) < t)
 					return
 				matches.push(f.replace(/\.json$/, ''))
 			})
@@ -276,7 +273,7 @@ var gis = net.createServer(function(sock) {
 			meta.xexun.serial	= match[1]	// gps date + gps time
 			meta.xexun['admin-tel']	= match[2]
 			data			= '$'+match[3]+match[4]
-			meta.xexun['gps-fix']	= ( match[5] === 'F' ) ? 1 : 0
+			meta.xexun['gps-fix']	= ( match[5] === 'F' ) ? 1 : 0;
 			meta.xexun.message	= match[6]
 			meta.xexun.imei		= match[7]
 			meta.xexun.satellites	= parseInt(match[8])
