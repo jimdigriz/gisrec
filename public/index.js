@@ -180,14 +180,15 @@ data.on('*', function(event, properties, sender) {
 					map.addLayer(layers[d.group])
 				}
 
-				if (timeout[d.group])
-					clearTimeout(timeout[d.group])
-				timeout[d.group] = setTimeout(function() {
-					timeout[d.group] = undefined
+				var g = i.replace(/:.*$/, '')
+				if (timeout[g])
+					clearTimeout(timeout[g])
+				timeout[g] = setTimeout(function() {
+					timeout[g] = undefined
 
-					layers[d.group].getSource().clear()
-					layers[d.group].getSource().addFeatures(buildFeatures(d.group))
-				}.bind(d), 250)
+					layers[g].getSource().clear()
+					layers[g].getSource().addFeatures(buildFeatures(g))
+				}.bind(g), 250)
 				break
 			}
 			break
@@ -228,6 +229,7 @@ data.on('*', function(event, properties, sender) {
 						layers[g].getSource().addFeatures(features)
 					} else {
 						map.removeLayer(layers[g])
+						delete layers[g]
 					}
 				}.bind(g), 250)
 				break
@@ -265,7 +267,7 @@ timeline.on('doubleClick', function(props) {
 	$('#groups').modal('show')
 })
 timeline.on('rangechanged', function(props) {
-	if (timeout['_timeline'] !== undefined)
+	if (timeout['_timeline'])
 		clearTimeout(timeout['_timeline'])
 
 	if (props.byUser) {
@@ -284,7 +286,7 @@ $('#channels #refresh').click(function(event) {
 		delete xhr['refresh']
 	}
 
-	if (xhr['refresh'] !== undefined) {
+	if (xhr['refresh'])
 		xhr['refresh'].abort()
 		cleanup()
 		return
@@ -334,7 +336,7 @@ function history() {
 			}
 		}), 'history')
 
-		if (xhr['channel '+id] !== undefined)
+		if (xhr['channel '+id])
 			xhr['channel '+id].abort()
 
 		xhr['channel '+id] = $.ajax({
@@ -344,7 +346,7 @@ function history() {
 			success: function(jp) {
 				delete xhr['channel '+id]
 				jp.files.forEach(function(f) {
-					if (xhr['channel '+id+' '+f] !== undefined)
+					if (xhr['channel '+id+' '+f])
 						return
 
 					xhr['channel '+id+' '+f] = $.ajax({
@@ -481,7 +483,7 @@ connection.onopen = function() {
 			}
 			break
 		case 'plus':
-			if (xhr['put channel '+i] !== undefined)
+			if (xhr['put channel '+i])
 				xhr['put channel '+i].abort()
 
 			xhr['put channel '+i] = $.ajax({
@@ -500,7 +502,7 @@ connection.onopen = function() {
 
 			break
 		case 'trash':
-			if (xhr['delete channel '+i] !== undefined)
+			if (xhr['delete channel '+i])
 				xhr['delete channel '+i].abort()
 
 			xhr['delete channel '+i] = $.ajax({
