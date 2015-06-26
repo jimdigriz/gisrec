@@ -291,8 +291,11 @@ $('#channels #refresh').click(function(event) {
 			})
 
 			Object.keys(p).filter(function(id) { return jp.channels[id] === undefined }).forEach(function(id) {
-				$('#devicelist #'+id).remove()
-				data.id.clear()
+				if (!$('#channellist #'+i+' #location-arrow').hasClass('inactive'))
+					$('#channellist #'+i+' #location-arrow a').click()
+				if (!$('#channellist #'+i+' #history').hasClass('inactive'))
+					$('#channellist #'+i+' #history] a').click()
+				$('#channellist #'+id).remove()
 			})
 		},
 		error: function(jp) {
@@ -489,8 +492,11 @@ connection.onopen = function(){
 				url: '/channel/'+i,
 				success: function(jp) {
 					delete xhr['delete channel '+i]
+					if (!$('#channellist #'+i+' #location-arrow').hasClass('inactive'))
+						$('#channellist #'+i+' #location-arrow a').click()
+					if (!$('#channellist #'+i+' #history').hasClass('inactive'))
+						$('#channellist #'+i+' #history] a').click()
 					$('#channellist #'+i).remove()
-					data.i.clear()
 				},
 				error: function(jp) {
 					delete xhr['delete channel '+i]
