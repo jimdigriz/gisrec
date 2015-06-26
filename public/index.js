@@ -276,12 +276,38 @@ function history() {
 						url: '/channel/'+id+'/'+f+'.json',
 						success: function(j){
 							delete xhr['channel '+id+' '+f]
-							data.update({
-								id: id+':'+j.properties.time,
-								start: new Date(j.properties.time * 1000),
-								group: id,
-								geojson: j
-							})
+
+							var results = []
+
+							switch (j.type) {
+							case 'Feature':
+								if (j.properties.time * 1000 < timelineRange.start.getTime() || j.properties.time * 1000 > timelineRange.end.getTime())
+									return
+								results.push({
+									id: id+':'+j.properties.time,
+									start: new Date(j.properties.time * 1000),
+									group: id,
+									geojson: j
+								})
+								break
+							case 'FeatureCollection':
+								j.features.forEach(function(i){
+									if (i.properties.time * 1000 < timelineRange.start.getTime() || i.properties.time * 1000 > timelineRange.end.getTime())
+										return
+									results.push({
+										id: id+':'+i.properties.time,
+										start: new Date(i.properties.time * 1000),
+										group: id,
+										geojson: i
+									})
+								})
+								break
+							default:
+								console.log('unknown GeoJSON format for '+id+':'+f+': '+j.type)
+								return
+							}
+
+							data.update(results)
 						},
 						error: function(j){
 							delete xhr['channel '+id+' '+f]
