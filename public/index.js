@@ -281,15 +281,7 @@ function history() {
 
 							switch (j.type) {
 							case 'Feature':
-								if (j.properties.time * 1000 < timelineRange.start.getTime() || j.properties.time * 1000 > timelineRange.end.getTime())
-									return
-								results.push({
-									id: id+':'+j.properties.time,
-									start: new Date(j.properties.time * 1000),
-									group: id,
-									geojson: j
-								})
-								break
+								j = { type: 'FeatureCollection', features: [ j ] }
 							case 'FeatureCollection':
 								j.features.forEach(function(i){
 									if (i.properties.time * 1000 < timelineRange.start.getTime() || i.properties.time * 1000 > timelineRange.end.getTime())
