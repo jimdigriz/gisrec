@@ -113,9 +113,7 @@ var groups = []
 var data = new vis.DataSet()
 var layers = {
 	realtime: new ol.layer.Vector({
-		source: new ol.source.Vector({
-			features: [],
-		}),
+		source: new ol.source.Vector(),
 		style: new ol.style.Style({
 			image: new ol.style.Circle({
 				radius: 10,
@@ -158,18 +156,11 @@ data.on('*', function(event, properties, sender) {
 					})
 
 					layers[d.group] = new ol.layer.Vector({
-						source: new ol.source.Vector({
-							features: [ ]
-						}),
+						source: new ol.source.Vector(),
 						style: new ol.style.Style({
-							image: new ol.style.Circle({
-								radius: 10,
-								stroke: new ol.style.Stroke({
-									color: 'lightskyblue'
-								}),
-								fill: new ol.style.Fill({
-									color: 'white'
-								})
+							stroke: new ol.style.Stroke({
+								width: 2,
+								color: 'lightskyblue'
 							})
 						})
 					})
@@ -182,7 +173,7 @@ data.on('*', function(event, properties, sender) {
 					timeout[d.group] = undefined
 
 					layers[d.group].getSource().clear()
-					layers[d.group].getSource().addFeatures(buildFeatures(d.group))
+					layers[d.group].getSource().addFeature(buildLineString(d.group))
 				}.bind(d), 100)
 				break
 			}
@@ -218,10 +209,10 @@ data.on('*', function(event, properties, sender) {
 				timeout[g] = setTimeout(function() {
 					timeout[g] = undefined
 
-					var features = buildFeatures(g)
-					if (features.length) {
+					var linestring = buildLineString(g)
+					if (linestring) {
 						layers[g].getSource().clear()
-						layers[g].getSource().addFeatures(features)
+						layers[g].getSource().addFeature(linestring)
 					} else {
 						map.removeLayer(layers[g])
 						delete layers[g]
@@ -235,16 +226,15 @@ data.on('*', function(event, properties, sender) {
 	})
 })
 
-function buildFeatures(group) {
-	return (new ol.format.GeoJSON()).readFeatures({
-		type: 'FeatureCollection',
-		features: data.get({ filter: function(i) {
+function buildLineString(group) {
+	var points = data.get({ filter: function(i) {
 				return i.group === group
-			}}).map(function(j) { return j.geojson })
-		}, {
-			dataProjection: 'EPSG:4326',
-			featureProjection: 'EPSG:900913'
-		})
+			}}).sort(function(a, b) { a.geojson.properties.time - b.geojson.properties.time }).map(function(i) { return i.geojson.geometry.coordinates })
+
+	if (!points.length)
+		return
+
+	return new ol.Feature({ geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913') })
 }
 
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
