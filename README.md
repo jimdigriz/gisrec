@@ -8,13 +8,12 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
  * when full screen, models do not show
  * historic playback
- * remove 'inactive' class, figure out how to make do with just 'active'
+ * realtime needs to be top layer
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * local storage for naming/groups, plus share back to server
  * group broadcast events (reg/unreg)
  * meta data tagging/hovers/etc
  * pruner for old unreg devices
- * auto-zoom/focus
  * data storage format
   * recording coalescer
   * HTTP cache friendly
