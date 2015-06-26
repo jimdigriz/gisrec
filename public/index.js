@@ -159,11 +159,7 @@ data.on('*', function(event, properties, sender) {
 
 					layers[d.group] = new ol.layer.Vector({
 						source: new ol.source.Vector({
-							features: [
-								new ol.Feature({
-									geometry: new ol.geom.MultiPoint([]),
-								})
-							]
+							features: [ ]
 						}),
 						style: new ol.style.Style({
 							image: new ol.style.Circle({
@@ -180,15 +176,14 @@ data.on('*', function(event, properties, sender) {
 					map.addLayer(layers[d.group])
 				}
 
-				var g = i.replace(/:.*$/, '')
-				if (timeout[g])
-					clearTimeout(timeout[g])
-				timeout[g] = setTimeout(function() {
-					timeout[g] = undefined
+				if (timeout[d.group])
+					clearTimeout(timeout[d.group])
+				timeout[d.group] = setTimeout(function() {
+					timeout[d.group] = undefined
 
-					layers[g].getSource().clear()
-					layers[g].getSource().addFeatures(buildFeatures(g))
-				}.bind(g), 250)
+					layers[d.group].getSource().clear()
+					layers[d.group].getSource().addFeatures(buildFeatures(d.group))
+				}.bind(d), 100)
 				break
 			}
 			break
@@ -230,8 +225,9 @@ data.on('*', function(event, properties, sender) {
 					} else {
 						map.removeLayer(layers[g])
 						delete layers[g]
+						groups = groups.filter(function(h) { return h.id !== g })
 					}
-				}.bind(g), 250)
+				}.bind(g), 100)
 				break
 			}
 			break
@@ -243,7 +239,7 @@ function buildFeatures(group) {
 	return (new ol.format.GeoJSON()).readFeatures({
 		type: 'FeatureCollection',
 		features: data.get({ filter: function(i) {
-				return i.group = group
+				return i.group === group
 			}}).map(function(j) { return j.geojson })
 		}, {
 			dataProjection: 'EPSG:4326',
@@ -269,7 +265,6 @@ timeline.on('doubleClick', function(props) {
 timeline.on('rangechanged', function(props) {
 	if (timeout['_timeline'])
 		clearTimeout(timeout['_timeline'])
-
 	if (props.byUser) {
 		timeout['_timeline'] = setTimeout(function() {
 			timeout['_timeline'] = undefined
