@@ -51,6 +51,22 @@ gisControl.settings = function(opt_options) {
 }
 ol.inherits(gisControl.settings, ol.control.Control)
 
+var binglayers = []
+new Array([ 'Aerial', 'Aerial' ], [ 'AerialWithLabels', 'Aerial With Labels' ], [ 'Road', 'Road' ]).forEach(function(i) {
+	binglayers.push(new ol.layer.Tile({
+		title: i[1],
+		type: 'base',
+		visible: false,
+		preload: Infinity,
+		source: new ol.source.BingMaps({
+			key: 'AiacPueEKeXax2ZLDSae4M4B4sQyr9HtgHFGvvaXAVj0Sfe000usBSik9_fzKFX_',
+			culture: window.navigator.languages[0] || window.navigator.userLanguage || window.navigator.language,
+			imagerySet: i[0],
+			maxZoom: 19
+		})
+	}))
+})
+
 var map = new ol.Map({
 	target: 'map',
 	layers: [
@@ -58,20 +74,14 @@ var map = new ol.Map({
 			title: 'OpenStreetMap',
 			type: 'base',
 			visible: true,
+			preload: Infinity,
 			source: new ol.source.OSM({
 				crossOrigin: null
 			})
 		}),
-		new ol.layer.Tile({
-			title: 'Bing Maps (Aerial)',
-			type: 'base',
-			visible: false,
-			source: new ol.source.BingMaps({
-				key: 'AiacPueEKeXax2ZLDSae4M4B4sQyr9HtgHFGvvaXAVj0Sfe000usBSik9_fzKFX_',
-				culture: window.navigator.languages[0] || window.navigator.userLanguage || window.navigator.language,
-				imagerySet: 'Aerial',
-				maxZoom: 19
-			})
+		new ol.layer.Group({
+			title: 'Bing Maps',
+			layers: binglayers
 		})
 	],
 	controls: ol.control.defaults({
