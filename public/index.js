@@ -286,7 +286,7 @@ $('#channels #refresh').click(function(event) {
 		delete xhr['refresh']
 	}
 
-	if (xhr['refresh'])
+	if (xhr['refresh']) {
 		xhr['refresh'].abort()
 		cleanup()
 		return
