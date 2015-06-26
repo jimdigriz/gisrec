@@ -173,9 +173,9 @@ data.on('*', function(event, properties, sender) {
 					clearTimeout(timeout[d.group])
 				timeout[d.group] = setTimeout(function() {
 					timeout[d.group] = undefined
-
 					layers[d.group].getSource().clear()
 					layers[d.group].getSource().addFeature(buildLineString(d.group))
+					updateMap()
 				}.bind(d), 100)
 				break
 			}
@@ -216,7 +216,6 @@ data.on('*', function(event, properties, sender) {
 					clearTimeout(timeout[g])
 				timeout[g] = setTimeout(function() {
 					timeout[g] = undefined
-
 					var linestring = buildLineString(g)
 					if (linestring) {
 						layers[g].getSource().clear()
@@ -226,6 +225,7 @@ data.on('*', function(event, properties, sender) {
 						delete layers[g]
 						groups = groups.filter(function(h) { return h.id !== g })
 					}
+					updateMap()
 				}.bind(g), 100)
 				break
 			}
@@ -233,6 +233,14 @@ data.on('*', function(event, properties, sender) {
 		}
 	}
 })
+
+function updateMap() {
+	var extent = ol.extent.createEmpty()
+	Object.keys(layers).forEach(function(j) {
+		extent = ol.extent.extend(extent, layers[j].getSource().getExtent())
+	})
+	map.getView().fitExtent(extent, map.getSize())
+}
 
 function buildLineString(group) {
 	var points = data.get({ filter: function(i) {
