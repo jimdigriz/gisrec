@@ -43,7 +43,7 @@ app.all('/channel/:channel?/:file?', function(req, res) {
 			switch (req.method) {
 			case 'GET':
 				if (req.params.file !== undefined) {
-					var opt = { root: __dirname+'/data' }
+					var opt = { root: __dirname+'/data', maxAge: 3*24*3600*1000 }
 					res.sendFile(req.params.channel+'/'+req.params.file, opt, function(err){
 						if (err)
 							res.status(err.status).jsonp({ error: err.code })
