@@ -130,7 +130,9 @@ var layers = {
 map.addLayer(layers['realtime'])
 
 data.on('*', function(event, properties, sender) {
-	properties.items.forEach(function(i) {
+	for (var n = 0; n < properties.items.length; n++ ) {
+		var i = properties.items[n]
+
 		switch (event) {
 		case 'add':
 			var d = data.get(i)
@@ -180,7 +182,7 @@ data.on('*', function(event, properties, sender) {
 			break
 		case 'update':
 			var d = data.get(i)
-			var o = properties.data[i]
+			var o = properties.data[n]
 
 			switch (sender) {
 			case 'realtime':
@@ -190,8 +192,14 @@ data.on('*', function(event, properties, sender) {
 						featureProjection: 'EPSG:900913'
 					}).getGeometry()
 				)
-				break
-			case 'history':
+				if (!$('#channellist #'+i+' #history').hasClass('inactive')) {
+					data.update({
+						id: i+':'+o.geojson.properties.time,
+						start: new Date(o.geojson.properties.time * 1000),
+						group: i,
+						geojson: o.geojson
+					})
+				}
 				break
 			}
 			break
@@ -223,7 +231,7 @@ data.on('*', function(event, properties, sender) {
 			}
 			break
 		}
-	})
+	}
 })
 
 function buildLineString(group) {
