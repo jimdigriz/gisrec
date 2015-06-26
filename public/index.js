@@ -165,8 +165,8 @@ data.on('*', function(event, properties, sender) {
 			})
 			break
 		case 'remove':
-			if (data.get({ filter: function(i) { return g.id === i }}).length)
-				groups = groups.filter(function(g) { return g.id !== i })
+			if (data.get({ filter: function(j) { return j.id === i }}).length)
+				groups = groups.filter(function(g) { return j.id !== i })
 			map.removeLayer(layers[i])
 			delete layers[i]
 			break
@@ -251,6 +251,13 @@ function history() {
 
 	$('#channellist tr[id]:has(#history:not(.inactive))').map(function() {
 		var id = this.id
+
+		data.remove(data.get({
+			filter: function(i) {
+				return i.group === id && (i.start.getTime() < timelineRange.start.getTime() || i.start.getTime() > timelineRange.end.getTime())
+			}})
+		)
+
 		if (xhr['channel '+id] !== undefined)
 			xhr['channel '+id].abort()
 
