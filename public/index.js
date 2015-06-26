@@ -106,69 +106,125 @@ var map = new ol.Map({
 	})
 })
 
-var styles = {
-	'Point': [new ol.style.Style({
-		text: new ol.style.Text({
-			text: '\uf041',
-			font: '2em FontAwesome',
-			textBaseline: 'Bottom',
-			fill: new ol.style.Fill({
-				color: 'blue',
+var groups = []
+var data = new vis.DataSet()
+var layers = {
+	realtime: new ol.layer.Vector({
+		source: new ol.source.Vector({
+			features: [],
+		}),
+		style: new ol.style.Style({
+			image: new ol.style.Circle({
+				radius: 10,
+				stroke: new ol.style.Stroke({
+					color: 'springgreen'
+				}),
+				fill: new ol.style.Fill({
+					color: 'white'
+				})
 			})
 		})
-	})]
+	})
 }
-var styleFunction = function(feature, resolution) {
-	return styles[feature.getGeometry().getType()]
-}
+map.addLayer(layers['realtime'])
 
-var data = new vis.DataSet()
-var	groups = [],
-	layers = { }
 data.on('*', function(event, properties, sender) {
-	if (sender === 'self')
-		return
-
 	properties.items.forEach(function(i) {
 		switch (event) {
 		case 'add':
 			var d = data.get(i)
 
-			if (!groups.filter(function(g) { return g.id === d.group }).length) {
-				groups.push({
-					id: d.group,
-					content: d.group
+			switch (sender) {
+			case 'realtime':
+				var f = new ol.Feature({
+					geometry: new ol.geom.Point(
+						(new ol.format.GeoJSON()).readFeature(d.geojson, {
+						dataProjection: 'EPSG:4326',
+							featureProjection: 'EPSG:900913'
+						}).getGeometry().getCoordinates()
+					)
 				})
+				f.setId(i)
+				layers['realtime'].getSource().addFeature(f)
+				break
+			case 'history':
+				if (!groups.filter(function(g) { return g.id === d.group }).length) {
+					groups.push({
+						id: d.group,
+						content: d.group
+					})
+
+					layers[d.group] = new ol.layer.Vector({
+						source: new ol.source.Vector({
+							features: [
+								new ol.Feature({
+									geometry: new ol.geom.MultiPoint([]),
+								})
+							]
+						}),
+						style: new ol.style.Style({
+							image: new ol.style.Circle({
+								radius: 10,
+								stroke: new ol.style.Stroke({
+									color: 'lightskyblue'
+								}),
+								fill: new ol.style.Fill({
+									color: 'white'
+								})
+							})
+						})
+					})
+					map.addLayer(layers[d.group])
+				}
+
+				layers[d.group].getSource().getFeatures()[0].getGeometry().appendPoint(
+					new ol.geom.Point(
+						(new ol.format.GeoJSON()).readFeature(d.geojson, {
+							dataProjection: 'EPSG:4326',
+							featureProjection: 'EPSG:900913'
+						}).getGeometry().getCoordinates()
+					)
+				)
+				break
 			}
-			d.vector = new ol.source.Vector({
-				features: (new ol.format.GeoJSON()).readFeatures(d.geojson, {
-					dataProjection: 'EPSG:4326',
-					featureProjection: 'EPSG:900913'
-				})
-			})
-			d.layer = new ol.layer.Vector({
-				source: d.vector,
-				style: styleFunction
-			})
-			data.update(d, 'self')
-			layers[i] = d.layer
-			map.addLayer(d.layer)
 			break
 		case 'update':
 			var d = data.get(i)
 			var o = properties.data[i]
 
-			d.vector.forEachFeature(function(f) {
-				f.getGeometry().setCoordinates(
-					ol.proj.transform(d.geojson.geometry.coordinates, 'EPSG:4326', 'EPSG:900913')
+			switch (sender) {
+			case 'realtime':
+				layers['realtime'].getSource().getFeatureById(i).setGeometry(
+					(new ol.format.GeoJSON()).readFeature(d.geojson, {
+						dataProjection: 'EPSG:4326',
+						featureProjection: 'EPSG:900913'
+					}).getGeometry()
 				)
-			})
+				break
+			case 'history':
+				break
+			}
 			break
 		case 'remove':
-			if (data.get({ filter: function(j) { return j.id === i }}).length)
-				groups = groups.filter(function(g) { return j.id !== i })
-			map.removeLayer(layers[i])
-			delete layers[i]
+			switch (sender) {
+			case 'realtime':
+				layers['realtime'].getSource().removeFeature(
+					layers['realtime'].getSource().getFeatureById(i)
+				)
+				break
+			case 'history':
+				if (data.get({ filter: function(j) { return j.id === i }}).length) {
+					groups = groups.filter(function(g) {
+						if (g === i) {
+							map.removeLayer(layers[g])
+							delete layers[g]
+							return false
+						}
+						return true
+					})
+				}
+				break
+			}
 			break
 		}
 	})
@@ -255,8 +311,8 @@ function history() {
 		data.remove(data.get({
 			filter: function(i) {
 				return i.group === id && (i.start.getTime() < timelineRange.start.getTime() || i.start.getTime() > timelineRange.end.getTime())
-			}})
-		)
+			}
+		}), 'history')
 
 		if (xhr['channel '+id] !== undefined)
 			xhr['channel '+id].abort()
@@ -286,12 +342,14 @@ function history() {
 								j.features.forEach(function(i){
 									if (i.properties.time * 1000 < timelineRange.start.getTime() || i.properties.time * 1000 > timelineRange.end.getTime())
 										return
-									results.push({
-										id: id+':'+i.properties.time,
-										start: new Date(i.properties.time * 1000),
-										group: id,
-										geojson: i
-									})
+									if (data.get(id+':'+i.properties.time) === null) {
+										results.push({
+											id: id+':'+i.properties.time,
+											start: new Date(i.properties.time * 1000),
+											group: id,
+											geojson: i
+										})
+									}
 								})
 								break
 							default:
@@ -299,7 +357,7 @@ function history() {
 								return
 							}
 
-							data.update(results)
+							data.update(results, 'history')
 						},
 						error: function(j){
 							delete xhr['channel '+id+' '+f]
@@ -357,13 +415,13 @@ connection.onopen = function(){
 				break
 			}
 			data.update({
-				id: message.channel+':realtime',
+				id: message.channel,
 				type: 'box',
 				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
 				subgroup: message.channel,
 				geojson: message.geojson
-			})
+			}, 'realtime')
 			break
 		default:
 			log('unknown message type: '+message.type)
@@ -382,8 +440,8 @@ connection.onopen = function(){
 				data.remove(data.get({
 					filter: function(j) {
 						return j.group === undefined && j.subgroup === i
-					}})
-				)
+					}
+				}), 'realtime')
 			} else {
 				subs.push('^'+i+'$')
 				send({ type: 'realtime', channel: i })
@@ -396,8 +454,8 @@ connection.onopen = function(){
 				data.remove(data.get({
 					filter: function(j) {
 						return j.group === i
-					}})
-				)
+					}
+				}), 'history')
 			} else {
 				history()
 			}
