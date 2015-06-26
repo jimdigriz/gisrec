@@ -298,18 +298,18 @@ $('#channels #refresh').click(function(event) {
 			var p = {}
 			$('#channellist tr[id]').map(function() { p[this.id] = 1 })
 
-			Object.keys(jp.channels).filter(function(i) { return p[i] === undefined }).forEach(function(id) {
-				var type = (jp.channels[id].registered) ? 'history' : 'plus';
-				$('#channellist > tbody').append('<tr id="'+id+'" class="fa-lg"><th>'+id+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>')
-				p[id] = 1
+			Object.keys(jp.channels).filter(function(i) { return p[i] === undefined }).forEach(function(i) {
+				var type = (jp.channels[i].registered) ? 'history' : 'plus';
+				$('#channellist > tbody').append('<tr id="'+i+'" class="fa-lg"><th>'+i+'</th><td class="gisrec inactive" id="location-arrow"><a href="#"><i class="fa fa-location-arrow"></i></a></td><td class="gisrec inactive" id="'+type+'"><a href="#"><i class="fa fa-'+type+'"></i></a></td><td class="gisrec inactive" id="trash"><a href="#"><i class="fa fa-trash"></i></a></td></tr>')
+				p[i] = 1
 			})
 
-			Object.keys(p).filter(function(id) { return jp.channels[id] === undefined }).forEach(function(id) {
+			Object.keys(p).filter(function(i) { return jp.channels[i] === undefined }).forEach(function(i) {
 				if (!$('#channellist #'+i+' #location-arrow').hasClass('inactive'))
 					$('#channellist #'+i+' #location-arrow a').click()
 				if (!$('#channellist #'+i+' #history').hasClass('inactive'))
-					$('#channellist #'+i+' #history] a').click()
-				$('#channellist #'+id).remove()
+					$('#channellist #'+i+' #history a').click()
+				$('#channellist #'+i).remove()
 			})
 		},
 		error: function(jp) {
@@ -509,7 +509,7 @@ connection.onopen = function() {
 					if (!$('#channellist #'+i+' #location-arrow').hasClass('inactive'))
 						$('#channellist #'+i+' #location-arrow a').click()
 					if (!$('#channellist #'+i+' #history').hasClass('inactive'))
-						$('#channellist #'+i+' #history] a').click()
+						$('#channellist #'+i+' #history a').click()
 					$('#channellist #'+i).remove()
 				},
 				error: function(jp) {
