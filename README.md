@@ -6,7 +6,7 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
- * everything is in UTC rather that the browsers timezone
+ * fix strange timezone offset problem
  * realtime point needs a popup
  * different colours for different histories (with labelling)
  * when full screen, modals do not show
@@ -36,8 +36,8 @@ Now to fetch GISrec and set up its dependencies:
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
     
-    git submodule update --init
     npm install
+    curl -L -O -J https://cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.js
 
 # Run
 

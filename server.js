@@ -24,13 +24,15 @@ try {
 
 app.use(compress())
 app.use(express.static(__dirname+'/public'))
+app.use('/lib/jquery', express.static(__dirname+'/node_modules/jquery/dist'))
 app.use('/lib/font-awesome', express.static(__dirname+'/node_modules/font-awesome'))
 app.use('/lib/bootstrap', express.static(__dirname+'/node_modules/bootstrap/dist'))
-app.use('/lib/es6-promise', express.static(__dirname+'/node_modules/es6-promise/dist'))
 app.use('/lib/openlayers', express.static(__dirname+'/node_modules/openlayers/dist'))
-app.use('/lib/ol3-layerswitcher', express.static(__dirname+'/ol3-layerswitcher/src'))
+app.use('/lib/ol3-layerswitcher', express.static(__dirname+'/node_modules/ol3-layerswitcher/src'))
 app.use('/lib/vis', express.static(__dirname+'/node_modules/vis/dist'))
-app.use('/lib/jquery', express.static(__dirname+'/node_modules/jquery/dist'))
+app.use('/lib/es6-promise', express.static(__dirname+'/node_modules/es6-promise/dist'))
+app.use('/lib/jstz.js', express.static(__dirname+'/jstz.js'))
+app.use('/lib/walltime-js', express.static(__dirname+'/node_modules/walltime-js/client'))
 
 app.all('/channel/:channel?/:file?', function(req, res) {
 	channels().then(function(channels) {

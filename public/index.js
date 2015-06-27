@@ -341,7 +341,7 @@ data.on('*', function(event, properties, sender) {
 				if (!$('#channellist #'+i+' #history').hasClass('inactive')) {
 					data.update({
 						id: i+':'+o.geojson.properties.time,
-						start: new Date(o.geojson.properties.time * 1000),
+						start: WallTime.UTCToWallTime((new Date()).setTime(o.geojson.properties.time * 1000), tz).wallTime,
 						group: i,
 						geojson: o.geojson
 					}, 'history')
@@ -421,6 +421,7 @@ function getFeatures(group) {
 		})
 }
 
+var tz = jstz.determine().name()
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	orientation: 'top',
 	type: 'point',
@@ -523,10 +524,12 @@ function history() {
 		if (xhr['channel '+id])
 			xhr['channel '+id].abort()
 
+		var	start = WallTime.WallTimeToUTC(tz, timelineRange.start).getTime()
+			end = WallTime.WallTimeToUTC(tz, timelineRange.end).getTime()
 		xhr['channel '+id] = $.ajax({
 			dataType: 'jsonp',
 			url: '/channel/'+id,
-			data: { start: timelineRange.start.getTime(), end: timelineRange.end.getTime() },
+			data: { start: start, end: end },
 			success: function(jp) {
 				delete xhr['channel '+id]
 				jp.files.forEach(function(f) {
@@ -546,12 +549,13 @@ function history() {
 								j = { type: 'FeatureCollection', features: [ j ] }
 							case 'FeatureCollection':
 								j.features.forEach(function(i) {
-									if (i.properties.time * 1000 < timelineRange.start.getTime() || i.properties.time * 1000 > timelineRange.end.getTime())
+									var time = WallTime.UTCToWallTime((new Date()).setTime(i.properties.time * 1000), tz).wallTime
+									if (time.getTime() < start || time.getTime() > end)
 										return
 									if (data.get(id+':'+i.properties.time) === null) {
 										results.push({
 											id: id+':'+i.properties.time,
-											start: new Date(i.properties.time * 1000),
+											start: time,
 											group: id,
 											geojson: i
 										})
@@ -624,7 +628,7 @@ connection.onopen = function() {
 				id: message.channel,
 				type: 'box',
 				content: message.channel,
-				start: new Date(message.geojson.properties.time * 1000),
+				start: WallTime.UTCToWallTime((new Date()).setTime(message.geojson.properties.time * 1000), tz).wallTime,
 				group: 'realtime',
 				subgroup: message.channel,
 				geojson: message.geojson
