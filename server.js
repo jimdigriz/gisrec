@@ -248,10 +248,15 @@ var gis = net.createServer(function(sock) {
 
 	log('connected')
 
+	sock.on('error', function(error) {
+		log('error '+error)
+	})
 	sock.on('close', function() {
 		log('disconnected')
 	})
 	sock.pipe(es.split()).pipe(es.map(function(data) {
+		data = data.trim()
+
 		var meta = {
 			'id':		null,
 			'raw':		data,
