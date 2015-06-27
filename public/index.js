@@ -110,7 +110,6 @@ var map = new ol.Map({
 })
 
 var popupElement = document.getElementById('popup')
-
 var popup = new ol.Overlay({
 	element: popupElement,
 	positioning: 'bottom-center',
