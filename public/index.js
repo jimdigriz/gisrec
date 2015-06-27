@@ -160,20 +160,16 @@ var clusterPointStyle = function clusterPointStyle(feature, resolution) {
 	return style
 }
 
-function renderPoints(group, points) {
+function renderFeatures(group, features) {
 	layers.history[group].point.getSource().getSource().clear()
-	layers.history[group].point.getSource().getSource().addFeatures(
-		points.map(function(i) {
-			return new ol.Feature({
-				geometry: new ol.geom.Point(i).transform('EPSG:4326', 'EPSG:900913')
-			})
-		})
-	)
+	layers.history[group].point.getSource().getSource().addFeatures(features)
 
 	layers.history[group].line.getSource().clear()
 	layers.history[group].line.getSource().addFeature(
 		new ol.Feature({
-			geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
+			geometry: new ol.geom.LineString(features.map(function(i) {
+				return i.getGeometry().getCoordinates()
+			}))
 		})
 	)
 }
@@ -232,8 +228,8 @@ data.on('*', function(event, properties, sender) {
 				timeout[d.group] = setTimeout(function() {
 					timeout[d.group] = undefined
 
-					var points = getPoints(d.group)
-					renderPoints(d.group, points)
+					var features = getFeatures(d.group)
+					renderFeatures(d.group, features)
 					updateMap()
 				}.bind(d), 100)
 				break
@@ -276,9 +272,9 @@ data.on('*', function(event, properties, sender) {
 				timeout[g] = setTimeout(function() {
 					timeout[g] = undefined
 
-					var points = getPoints(g)
-					if (points.length) {
-						renderPoints(g, points)
+					var features = getFeatures(g)
+					if (features.length) {
+						renderFeatures(g, features)
 					} else {
 						map.removeLayer(layers.history[g].point)
 						map.removeLayer(layers.history[g].line)
@@ -311,14 +307,19 @@ function updateMap() {
 	map.getView().fitExtent(extent, map.getSize())
 }
 
-function getPoints(group) {
-	return data.get({
-		filter: function(i) {
-			return i.group === group
-		}}).sort(function(a, b) {
-			a.geojson.properties.time - b.geojson.properties.time
-		}).map(function(i) {
-			return i.geojson.geometry.coordinates
+function getFeatures(group) {
+	return new ol.format.GeoJSON().readFeatures({
+		type: 'FeatureCollection',
+		features: data.get({ filter: function(i) {
+				return i.group === group
+			}}).sort(function(a, b) {
+				a.geojson.properties.time - b.geojson.properties.time
+			}).map(function(i) {
+				return i.geojson
+			})
+		}, {
+			dataProjection: 'EPSG:4326',
+			featureProjection: 'EPSG:900913'
 		})
 }
 
