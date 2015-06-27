@@ -575,7 +575,7 @@ connection.onopen = function() {
 				type: 'box',
 				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
-				group: realtime,
+				group: 'realtime',
 				subgroup: message.channel,
 				geojson: message.geojson
 			}, 'realtime')
