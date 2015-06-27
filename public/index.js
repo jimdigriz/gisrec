@@ -183,7 +183,7 @@ var layers = {
 					color: 'lime'
 				}),
 				fill: new ol.style.Fill({
-					color: 'white'
+					color: [ 255, 255, 255, 1.0 ]
 				})
 			})
 		})
@@ -193,7 +193,7 @@ var layers = {
 map.getLayers().push(layers['realtime'])
 
 var cacheClusterPointStyle = {}
-var clusterPointStyle = function clusterPointStyle(feature, resolution) {
+var clusterPointStyle = function(feature, resolution) {
 	var size = feature.get('features').length
 	var style = cacheClusterPointStyle[size]
 	if (!style) {
@@ -204,7 +204,7 @@ var clusterPointStyle = function clusterPointStyle(feature, resolution) {
 					color: 'lightskyblue'
 				}),
 				fill: new ol.style.Fill({
-					color: 'white'
+					color: [ 255, 255, 255, 0.6 ]
 				})
 			})
 		}
@@ -220,6 +220,37 @@ var clusterPointStyle = function clusterPointStyle(feature, resolution) {
 		cacheClusterPointStyle[size] = style
 	}
 	return style
+}
+
+var lineStringStyle = function(feature, resolution) {
+	var geometry = feature.getGeometry();
+	var styles = [
+		// linestring
+		new ol.style.Style({
+			stroke: new ol.style.Stroke({
+				width: 2,
+				color: 'lightskyblue'
+			})
+		})
+	];
+
+	geometry.forEachSegment(function(start, end) {
+		var dx = end[0] - start[0];
+		var dy = end[1] - start[1];
+		var rotation = Math.atan2(dy, dx);
+		// arrows
+		styles.push(new ol.style.Style({
+			geometry: new ol.geom.Point(end),
+			image: new ol.style.Icon({
+				src: '/arrow.png',
+				anchor: [0.75, 0.5],
+				rotateWithView: false,
+				rotation: -rotation
+			})
+		}));
+	});
+
+	return styles;
 }
 
 function renderFeatures(group, features) {
@@ -278,12 +309,7 @@ data.on('*', function(event, properties, sender) {
 
 					layers.history[d.group].line = new ol.layer.Vector({
 						source: new ol.source.Vector(),
-						style: new ol.style.Style({
-							stroke: new ol.style.Stroke({
-								width: 2,
-								color: 'lightskyblue'
-							})
-						})
+						style: lineStringStyle
 					})
 					map.getLayers().insertAt(length - 1, layers.history[d.group].line)
 				}
