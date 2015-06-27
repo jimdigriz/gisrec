@@ -109,6 +109,66 @@ var map = new ol.Map({
 	})
 })
 
+var popupElement = document.getElementById('popup')
+
+var popup = new ol.Overlay({
+	element: popupElement,
+	positioning: 'bottom-center',
+	stopEvent: false
+});
+map.addOverlay(popup);
+
+function popupText(prop) {
+	return '<b>speed:</b>&nbsp;'+prop.gprmc['speed']+'&nbsp;m/s<br/>\
+		<b>orien:</b>&nbsp;'+prop.gprmc['course-made-good']
+}
+
+map.on('click', function(e) {
+	var features = getFeaturesAtPoint(e.pixel)
+	if (features && features.length === 1) {
+		var geometry = features[0].getGeometry()
+		var coord = geometry.getCoordinates()
+		map.getOverlays().item(0).setPosition(coord)
+		$(popupElement).popover({
+			'placement': 'top',
+			'html': true,
+			'content': popupText(features[0].getProperties())
+		})
+		$(popupElement).popover('show')
+	} else {
+		$(popupElement).popover('destroy')
+	}
+})
+map.on('pointermove', function(e) {
+	if (e.dragging) {
+		$(popupElement).popover('destroy')
+		return
+	}
+
+	var pixel = map.getEventPixel(e.originalEvent)
+	var features = getFeaturesAtPoint(pixel)
+	map.getTargetElement().style.cursor = (features && features.length === 1) ? 'pointer' : '';
+})
+
+function getFeaturesAtPoint(pixel) {
+	var features = []
+	map.forEachFeatureAtPixel(pixel,
+		function(feature, layer) {
+			features = features.concat(
+				// horrible hack as the cluster compounds
+				feature.getProperties().features
+			)
+		}, undefined, function(l) {
+			return (Object.keys(layers.history).map(function(i) {
+					return layers.history[i].point
+				}).filter(function(i) {
+					return (i === l) ? 1 : undefined;
+				}).length === 1)
+		}
+	)
+	return features
+}
+
 var groups = []
 var data = new vis.DataSet()
 var layers = {
