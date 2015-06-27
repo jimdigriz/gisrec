@@ -290,7 +290,7 @@ data.on('*', function(event, properties, sender) {
 
 					var features = getFeatures(d.group)
 					renderFeatures(d.group, features)
-					updateMap()
+					resizeView()
 				}.bind(d), 100)
 				break
 			}
@@ -349,7 +349,7 @@ data.on('*', function(event, properties, sender) {
 	}
 })
 
-function updateMap() {
+function resizeView() {
 	var extent = ol.extent.createEmpty()
 	Object.keys(layers.history).forEach(function(j) {
 		extent = ol.extent.extend(extent, layers.history[j].line.getSource().getExtent())
@@ -365,6 +365,10 @@ function updateMap() {
 	)
 
 	map.getView().fitExtent(extent, map.getSize())
+
+	timeline.fit({
+		duration: 1000
+	})
 }
 
 function getFeatures(group) {
