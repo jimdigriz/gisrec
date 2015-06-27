@@ -6,7 +6,9 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
- * when full screen, models do not show
+ * realtime point needs a popup
+ * different colours for different histories (with labelling)
+ * when full screen, modals do not show
  * historic playback
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * local storage for naming/groups, plus share back to server
