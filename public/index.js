@@ -225,7 +225,6 @@ data.on('*', function(event, properties, sender) {
 						delete layers[g]
 						groups = groups.filter(function(h) { return h.id !== g })
 					}
-					updateMap()
 				}.bind(g), 100)
 				break
 			}
@@ -239,6 +238,16 @@ function updateMap() {
 	Object.keys(layers).forEach(function(j) {
 		extent = ol.extent.extend(extent, layers[j].getSource().getExtent())
 	})
+
+	map.beforeRender(
+		ol.animation.pan({
+			source: map.getView().getCenter()
+		}),
+		ol.animation.zoom({
+			resolution: map.getView().getResolution()
+		})
+	)
+
 	map.getView().fitExtent(extent, map.getSize())
 }
 
