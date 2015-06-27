@@ -125,7 +125,8 @@ var layers = {
 				})
 			})
 		})
-	})
+	}),
+	history: { }
 }
 map.addLayer(layers['realtime'])
 
@@ -157,7 +158,26 @@ data.on('*', function(event, properties, sender) {
 						content: d.group
 					})
 
-					layers[d.group] = new ol.layer.Vector({
+					layers.history[d.group] = { }
+					layers.history[d.group].point = new ol.layer.Vector({
+						source: new ol.source.Cluster({
+							source: new ol.source.Vector()
+						}),
+						style: new ol.style.Style({
+							image: new ol.style.Circle({
+								radius: 10,
+								stroke: new ol.style.Stroke({
+									color: 'lightskyblue'
+								}),
+								fill: new ol.style.Fill({
+									color: 'white'
+								})
+							})
+						})
+					})
+					map.addLayer(layers.history[d.group].point)
+
+					layers.history[d.group].line = new ol.layer.Vector({
 						source: new ol.source.Vector(),
 						style: new ol.style.Style({
 							stroke: new ol.style.Stroke({
@@ -166,15 +186,32 @@ data.on('*', function(event, properties, sender) {
 							})
 						})
 					})
-					map.addLayer(layers[d.group])
+					map.addLayer(layers.history[d.group].line)
 				}
 
 				if (timeout[d.group])
 					clearTimeout(timeout[d.group])
 				timeout[d.group] = setTimeout(function() {
 					timeout[d.group] = undefined
-					layers[d.group].getSource().clear()
-					layers[d.group].getSource().addFeature(buildLineString(d.group))
+
+					var points = getPoints(d.group)
+
+					layers.history[d.group].point.getSource().getSource().clear()
+					layers.history[d.group].point.getSource().getSource().addFeatures(
+						points.map(function(k) {
+							return new ol.Feature({
+								geometry: new ol.geom.Point(k).transform('EPSG:4326', 'EPSG:900913')
+							})
+						})
+					)
+
+					layers.history[d.group].line.getSource().clear()
+					layers.history[d.group].line.getSource().addFeature(
+						new ol.Feature({
+							geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
+						})
+					)
+
 					updateMap()
 				}.bind(d), 100)
 				break
@@ -216,13 +253,28 @@ data.on('*', function(event, properties, sender) {
 					clearTimeout(timeout[g])
 				timeout[g] = setTimeout(function() {
 					timeout[g] = undefined
-					var linestring = buildLineString(g)
-					if (linestring) {
-						layers[g].getSource().clear()
-						layers[g].getSource().addFeature(linestring)
+
+					var points = getPoints(g)
+					if (points.length) {
+						layers.history[g].point.getSource().getSource().clear()
+						layers.history[g].point.getSource().getSource().addFeatures(
+							points.map(function(k) {
+								return new ol.Feature({
+									geometry: new ol.geom.Point(k).transform('EPSG:4326', 'EPSG:900913')
+								})
+							})
+						)
+
+						layers.history[d.group].line.getSource().clear()
+						layers.history[d.group].line.getSource().addFeature(
+							new ol.Feature({
+								geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
+							})
+						)
 					} else {
-						map.removeLayer(layers[g])
-						delete layers[g]
+						map.removeLayer(layers.history[g].point)
+						map.removeLayer(layers.history[g].line)
+						delete layers.history[g]
 						groups = groups.filter(function(h) { return h.id !== g })
 					}
 				}.bind(g), 100)
@@ -235,8 +287,8 @@ data.on('*', function(event, properties, sender) {
 
 function updateMap() {
 	var extent = ol.extent.createEmpty()
-	Object.keys(layers).forEach(function(j) {
-		extent = ol.extent.extend(extent, layers[j].getSource().getExtent())
+	Object.keys(layers.history).forEach(function(j) {
+		extent = ol.extent.extend(extent, layers.history[j].line.getSource().getExtent())
 	})
 
 	map.beforeRender(
@@ -251,15 +303,15 @@ function updateMap() {
 	map.getView().fitExtent(extent, map.getSize())
 }
 
-function buildLineString(group) {
-	var points = data.get({ filter: function(i) {
-				return i.group === group
-			}}).sort(function(a, b) { a.geojson.properties.time - b.geojson.properties.time }).map(function(i) { return i.geojson.geometry.coordinates })
-
-	if (!points.length)
-		return
-
-	return new ol.Feature({ geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913') })
+function getPoints(group) {
+	return data.get({
+		filter: function(i) {
+			return i.group === group
+		}}).sort(function(a, b) {
+			a.geojson.properties.time - b.geojson.properties.time
+		}).map(function(i) {
+			return i.geojson.geometry.coordinates
+		})
 }
 
 var timeline = new vis.Timeline($('#timeline').get(0), data, {
