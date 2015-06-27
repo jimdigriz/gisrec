@@ -135,13 +135,16 @@ map.on('click', function(e) {
 			'content': popupText(features[0].getProperties())
 		})
 		$(popupElement).popover('show')
+		timeline.setSelection(features[0].getProperties().id+':'+features[0].getProperties().time.toString())
 	} else {
 		$(popupElement).popover('destroy')
+		timeline.setSelection()
 	}
 })
 map.on('pointermove', function(e) {
 	if (e.dragging) {
 		$(popupElement).popover('destroy')
+		timeline.setSelection()
 		return
 	}
 
@@ -393,11 +396,7 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	start: new Date(new Date().getTime() - 10*60000),
 	end: new Date(new Date().getTime() + 5*60000),
 	group: groups,
-	editable: {
-		updateGroup: true,
-		remove: true,
-	},
-	stack: false,
+	stack: false
 })
 timeline.on('doubleClick', function(props) {
 	$('#groups').modal('show')
@@ -576,6 +575,7 @@ connection.onopen = function() {
 				type: 'box',
 				content: message.channel,
 				start: new Date(message.geojson.properties.time * 1000),
+				group: realtime,
 				subgroup: message.channel,
 				geojson: message.geojson
 			}, 'realtime')
