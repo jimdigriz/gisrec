@@ -130,6 +130,54 @@ var layers = {
 }
 map.addLayer(layers['realtime'])
 
+var cacheClusterPointStyle = {}
+var clusterPointStyle = function clusterPointStyle(feature, resolution) {
+	var size = feature.get('features').length
+	var style = cacheClusterPointStyle[size]
+	if (!style) {
+		var props = {
+			image: new ol.style.Circle({
+				radius: 10,
+				stroke: new ol.style.Stroke({
+					color: 'lightskyblue'
+				}),
+				fill: new ol.style.Fill({
+					color: 'white'
+				})
+			})
+		}
+		if (size > 1) {
+			props['text'] = new ol.style.Text({
+				text: size.toString(),
+				fill: new ol.style.Fill({
+					color: 'lightskyblue'
+				})
+			})
+		}
+		style = [ new ol.style.Style(props) ]
+		cacheClusterPointStyle[size] = style
+	}
+	return style
+}
+
+function renderPoints(group, points) {
+	layers.history[group].point.getSource().getSource().clear()
+	layers.history[group].point.getSource().getSource().addFeatures(
+		points.map(function(i) {
+			return new ol.Feature({
+				geometry: new ol.geom.Point(i).transform('EPSG:4326', 'EPSG:900913')
+			})
+		})
+	)
+
+	layers.history[group].line.getSource().clear()
+	layers.history[group].line.getSource().addFeature(
+		new ol.Feature({
+			geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
+		})
+	)
+}
+
 data.on('*', function(event, properties, sender) {
 	for (var n = 0; n < properties.items.length; n++ ) {
 		var i = properties.items[n]
@@ -163,17 +211,7 @@ data.on('*', function(event, properties, sender) {
 						source: new ol.source.Cluster({
 							source: new ol.source.Vector()
 						}),
-						style: new ol.style.Style({
-							image: new ol.style.Circle({
-								radius: 10,
-								stroke: new ol.style.Stroke({
-									color: 'lightskyblue'
-								}),
-								fill: new ol.style.Fill({
-									color: 'white'
-								})
-							})
-						})
+						style: clusterPointStyle
 					})
 					map.addLayer(layers.history[d.group].point)
 
@@ -195,23 +233,7 @@ data.on('*', function(event, properties, sender) {
 					timeout[d.group] = undefined
 
 					var points = getPoints(d.group)
-
-					layers.history[d.group].point.getSource().getSource().clear()
-					layers.history[d.group].point.getSource().getSource().addFeatures(
-						points.map(function(k) {
-							return new ol.Feature({
-								geometry: new ol.geom.Point(k).transform('EPSG:4326', 'EPSG:900913')
-							})
-						})
-					)
-
-					layers.history[d.group].line.getSource().clear()
-					layers.history[d.group].line.getSource().addFeature(
-						new ol.Feature({
-							geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
-						})
-					)
-
+					renderPoints(d.group, points)
 					updateMap()
 				}.bind(d), 100)
 				break
@@ -256,21 +278,7 @@ data.on('*', function(event, properties, sender) {
 
 					var points = getPoints(g)
 					if (points.length) {
-						layers.history[g].point.getSource().getSource().clear()
-						layers.history[g].point.getSource().getSource().addFeatures(
-							points.map(function(k) {
-								return new ol.Feature({
-									geometry: new ol.geom.Point(k).transform('EPSG:4326', 'EPSG:900913')
-								})
-							})
-						)
-
-						layers.history[d.group].line.getSource().clear()
-						layers.history[d.group].line.getSource().addFeature(
-							new ol.Feature({
-								geometry: new ol.geom.LineString(points).transform('EPSG:4326', 'EPSG:900913')
-							})
-						)
+						renderPoints(g, points)
 					} else {
 						map.removeLayer(layers.history[g].point)
 						map.removeLayer(layers.history[g].line)
