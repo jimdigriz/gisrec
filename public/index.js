@@ -114,8 +114,8 @@ var popup = new ol.Overlay({
 	element: popupElement,
 	positioning: 'bottom-center',
 	stopEvent: false
-});
-map.addOverlay(popup);
+})
+map.addOverlay(popup)
 
 function popupText(prop) {
 	return '<b>speed:</b>&nbsp;'+prop.gprmc['speed']+'&nbsp;m/s<br/>\
@@ -389,6 +389,9 @@ function getFeatures(group) {
 		}, {
 			dataProjection: 'EPSG:4326',
 			featureProjection: 'EPSG:900913'
+		}).map(function(f) {
+			f.setId(f.getProperties().id+':'+f.getProperties().time.toString())
+			return f
 		})
 }
 
@@ -399,6 +402,25 @@ var timeline = new vis.Timeline($('#timeline').get(0), data, {
 	end: new Date(new Date().getTime() + 5*60000),
 	group: groups,
 	stack: false
+})
+timeline.on('select', function(props) {
+	var feature;
+	Object.keys(layers.history).forEach(function(i) {
+		var f = layers.history[i].point.getSource().getSource().getFeatureById(props.items[0])
+		if (f)
+			feature = f
+	})
+	if (!feature)
+		return
+	var geometry = feature.getGeometry()
+	var coord = geometry.getCoordinates()
+	map.getOverlays().item(0).setPosition(coord)
+	$(popupElement).popover({
+		'placement': 'top',
+		'html': true,
+		'content': popupText(feature.getProperties())
+	})
+	$(popupElement).popover('show')
 })
 timeline.on('doubleClick', function(props) {
 	$('#groups').modal('show')
