@@ -8,7 +8,6 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
  * when full screen, models do not show
  * historic playback
- * realtime needs to be top layer
  * [make it an app](http://www.html5rocks.com/en/mobile/fullscreen/)
  * local storage for naming/groups, plus share back to server
  * group broadcast events (reg/unreg)
@@ -56,16 +55,15 @@ When running, you get to the main user interface by pointing your web browser at
 
 There main features of the interface are:
 
- * typical [OpenStreetMap](http://www.openstreetmap.org/) interactable map
- * scroll and zoomable timeline which is primarily used to group data points into sets.  So you can state that your tracker was attached to the cat 'Lulu for some data points', whilst for other points it was on 'Jones'
- * double click on the timeline to open the group name editor
- * two control widgets in the bottom right
+ * typical [OpenStreetMap](http://www.openstreetmap.org/)/[Bing Maps](https://www.bingmapsportal.com/) interactable map
+ * WIP: scroll and zoomable timeline which is primarily used to group data points into sets.  So you can state that your tracker was attached to the cat 'Lulu for some data points', whilst for other points it was on 'Jones'
+ * WIP: double click on the timeline to open the group name editor
+ * two control widgets in the bottom left
   * location arrow opens the 'channels' window
   * the cog opens the settings page - from here you can enable some basic JavaScript console debugging
  * the 'channels' window
   * lists the channels (devices) that are available to tune into
-  * 'unregistered' button to subscribe to new devices you are not colelcting historic data for
-  * 'refresh' button to get any new devices; refreshing with 'unregistered' enabled will fetch a full list of unregistered devices
+  * 'refresh' button to get any new devices; refreshing will fetch an updated list of unregistered devices
   * location arrow enables reception of live GPS data, as well as fetching the latest data point
   * history button will display all the histroy data recorded
   * add button registers devices, so that historic data is now recorded
@@ -84,9 +82,9 @@ Recordings appear in the `data` directory of the project.  If the device is 'unr
 
 ## Replaying PCAPs
 
-The following is good to capture some sample traffic:
+The following is good to capture some sample traffic (replacing `192.0.2.69` is the IP address of your server):
 
-    tcpdump -n -p -w - -U '(dst host 1.2.3.4 and dst port 27271) or (src host 1.2.3.4 and src port 27271)' \
+    tcpdump -n -p -w - -U '(dst host 192.0.2.69 and dst port 27271) or (src host 1.2.3.4 and src port 192.0.2.69)' \
     	| tee /tmp/dump.pcap \
     	| tcpdump -n -r - -A
 
