@@ -190,7 +190,7 @@ var layers = {
 	}),
 	history: { }
 }
-map.addLayer(layers['realtime'])
+map.getLayers().push(layers['realtime'])
 
 var cacheClusterPointStyle = {}
 var clusterPointStyle = function clusterPointStyle(feature, resolution) {
@@ -264,14 +264,17 @@ data.on('*', function(event, properties, sender) {
 						content: d.group
 					})
 
+					var length = map.getLayers().getLength()
+
 					layers.history[d.group] = { }
+
 					layers.history[d.group].point = new ol.layer.Vector({
 						source: new ol.source.Cluster({
 							source: new ol.source.Vector()
 						}),
 						style: clusterPointStyle
 					})
-					map.getLayers().insertAt(1, layers.history[d.group].point)
+					map.getLayers().insertAt(length - 1, layers.history[d.group].point)
 
 					layers.history[d.group].line = new ol.layer.Vector({
 						source: new ol.source.Vector(),
@@ -282,7 +285,7 @@ data.on('*', function(event, properties, sender) {
 							})
 						})
 					})
-					map.getLayers().insertAt(1, layers.history[d.group].line)
+					map.getLayers().insertAt(length - 1, layers.history[d.group].line)
 				}
 
 				if (timeout[d.group])
