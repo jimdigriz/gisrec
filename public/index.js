@@ -213,7 +213,7 @@ data.on('*', function(event, properties, sender) {
 						}),
 						style: clusterPointStyle
 					})
-					map.addLayer(layers.history[d.group].point)
+					map.getLayers().insertAt(1, layers.history[d.group].point)
 
 					layers.history[d.group].line = new ol.layer.Vector({
 						source: new ol.source.Vector(),
@@ -224,7 +224,7 @@ data.on('*', function(event, properties, sender) {
 							})
 						})
 					})
-					map.addLayer(layers.history[d.group].line)
+					map.getLayers().insertAt(1, layers.history[d.group].line)
 				}
 
 				if (timeout[d.group])
