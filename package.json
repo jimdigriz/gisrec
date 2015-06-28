@@ -11,7 +11,6 @@
     "express": "~4.12.4",
     "font-awesome": "~4.3.0",
     "jquery": "~2.1.4",
-    "ol3-layerswitcher": "^1.0.2",
     "openlayers": "~3.5.0",
     "rimraf": "~2.3.4",
     "vis": "~3.12.0",
