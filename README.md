@@ -36,7 +36,7 @@ Now to fetch GISrec and set up its dependencies:
     cd gisrec
     
     npm install
-    curl -L -O -J https://cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.js
+    curl -L -O -J https://cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js
 
 # Run
 

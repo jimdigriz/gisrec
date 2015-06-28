@@ -31,7 +31,7 @@ app.use('/lib/openlayers', express.static(__dirname+'/node_modules/openlayers/di
 app.use('/lib/ol3-layerswitcher', express.static(__dirname+'/node_modules/ol3-layerswitcher/src'))
 app.use('/lib/vis', express.static(__dirname+'/node_modules/vis/dist'))
 app.use('/lib/es6-promise', express.static(__dirname+'/node_modules/es6-promise/dist'))
-app.use('/lib/jstz.js', express.static(__dirname+'/jstz.js'))
+app.use('/lib/jstz.min.js', express.static(__dirname+'/jstz.min.js'))
 app.use('/lib/walltime-js', express.static(__dirname+'/node_modules/walltime-js/client'))
 
 app.all('/channel/:channel?/:file?', function(req, res) {
