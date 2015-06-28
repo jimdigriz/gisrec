@@ -6,7 +6,6 @@ GISrec receives data over TCP in the [GPRMC format](http://aprs.gids.nl/nmea/#rm
 
 ## Issues
 
- * fix strange timezone offset problem
  * realtime point needs a popup
  * different colours for different histories (with labelling)
  * when full screen, modals do not show
