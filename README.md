@@ -30,12 +30,13 @@ These instructions are for [Debian 'jessie' 8.x](https://www.debian.org/) but sh
 Now to fetch GISrec and set up its dependencies:
 
     sudo apt-get update
-    sudo apt-get install -yy --no-install-recommends git ca-certificates nodejs nodejs-legacy npm build-essential
+    sudo apt-get install -yy --no-install-recommends curl git ca-certificates nodejs nodejs-legacy npm build-essential
     
     git clone https://github.com/jimdigriz/gisrec.git
     cd gisrec
     
     npm install
+    git submodule update --init
     curl -L -O -J https://cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js
 
 # Run
