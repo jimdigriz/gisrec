@@ -87,7 +87,7 @@ Recordings appear in the `data` directory of the project.  If the device is 'unr
 
 The following is good to capture some sample traffic (replacing `192.0.2.69` is the IP address of your server):
 
-    tcpdump -n -p -w - -U '(dst host 192.0.2.69 and dst port 27271) or (src host 1.2.3.4 and src port 192.0.2.69)' \
+    tcpdump -n -p -w - -U '(dst host 192.0.2.69 and dst port 27271) or (src host 192.0.2.69 and src port 27271)' \
     	| tee /tmp/dump.pcap \
     	| tcpdump -n -r - -A
 
