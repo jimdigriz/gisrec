@@ -341,7 +341,7 @@ data.on('*', function(event, properties, sender) {
 				if (!$('#channellist #'+i+' #history').hasClass('inactive')) {
 					data.update({
 						id: i+':'+o.geojson.properties.time,
-						start: WallTime.UTCToWallTime((new Date()).setTime(o.geojson.properties.time * 1000), tz).wallTime,
+						start: new Date(o.geojson.properties.time * 1000),
 						group: i,
 						geojson: o.geojson
 					}, 'history')
@@ -549,7 +549,7 @@ function history() {
 								j = { type: 'FeatureCollection', features: [ j ] }
 							case 'FeatureCollection':
 								j.features.forEach(function(i) {
-									var time = WallTime.UTCToWallTime((new Date()).setTime(i.properties.time * 1000), tz).wallTime
+									var time = new Date(i.properties.time * 1000)
 									if (time.getTime() < start || time.getTime() > end)
 										return
 									if (data.get(id+':'+i.properties.time) === null) {
@@ -628,7 +628,7 @@ connection.onopen = function() {
 				id: message.channel,
 				type: 'box',
 				content: message.channel,
-				start: WallTime.UTCToWallTime((new Date()).setTime(message.geojson.properties.time * 1000), tz).wallTime,
+				start: new Date(message.geojson.properties.time * 1000),
 				group: 'realtime',
 				subgroup: message.channel,
 				geojson: message.geojson

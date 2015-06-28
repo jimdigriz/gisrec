@@ -119,9 +119,9 @@ function list(chan, start, end) {
 			var matches = []
 			files.sort().forEach(function(f) {
 				var t = new Date(f.replace(/\.json$/, '')).getTime()
-				if (start && (new Date()).setTime(start) > t)
+				if (start && start > t)
 					return
-				if (end && (new Date()).setTime(end) < t)
+				if (end && end < t)
 					return
 				matches.push(f.replace(/\.json$/, ''))
 			})
@@ -338,11 +338,11 @@ var gis = net.createServer(function(sock) {
 			checksum = parseInt(match[12])
 
 		var	dateParts = /([0-9]{2})([0-9]{2})([0-9]{2})/.exec(date)
-		var	d = dateParts[1], m = dateParts[2] - 1, y = '20'+dateParts[3]
+		var	d = dateParts[1], m = dateParts[2], y = '20'+dateParts[3]
 		var	timeParts = /([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]{3}))/.exec(time)
 		var	H = timeParts[1], M = timeParts[2], S = timeParts[3], ms = timeParts[4] || 0
 
-		var	ts = new Date(y, m, d, H, M, S, ms)
+		var	ts = new Date(y+'-'+m+'-'+d+'T'+H+':'+M+':'+S+'.'+ms+'Z')
 
 		var point = {
 			latitude:	GPRMC2Degrees(latitude, hemisphere),
